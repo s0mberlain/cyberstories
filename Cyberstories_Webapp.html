@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cyberstories</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: schwarze Kopfleiste wie auf den Karten, darunter Übersicht als Kartenraster
+   oder Spielansicht mit großer Karte links und Bedienfeld rechts. Ein festes Erscheinungsbild:
+   Papierweiß, Tinte, Signalrot, wie das gedruckte Deck. */
+:root {
+  --paper: #ffffff;
+  --ink: #111111;
+  --red: #d7191c;
+  --mute: #5f5b5b;
+  --line: #d9d4d4;
+  --wash: #f4f1f1;
+  --dots: rgba(17, 17, 17, .22);
+  --display: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45;
+  -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+
+.top { background: var(--ink); color: #fff; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.top-in { display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1400px; margin: 0 auto; }
+.brand { font-family: var(--mono); font-weight: 700; letter-spacing: .28em; font-size: 14px; background: none; border: 0; cursor: pointer; padding: 4px 0; }
+.brand span { color: var(--red); }
+.nav { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.nav button { background: none; border: 1px solid transparent; color: #cfcaca; font-family: var(--mono); font-size: 12px;
+  letter-spacing: .14em; text-transform: uppercase; padding: 8px 12px; border-radius: 2px; cursor: pointer; }
+.nav button[aria-current="true"] { color: #fff; border-color: #fff; }
+.nav button:hover { color: #fff; }
+
+main { max-width: 1400px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--mute); margin: 0 0 6px; }
+h1.page { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 4vw, 44px); letter-spacing: -.02em; line-height: 1.05; margin: 0; text-wrap: balance; }
+.rule { width: 48px; height: 4px; background: var(--red); margin: 14px 0 0; }
+
+/* Übersicht */
+.filters { display: flex; flex-wrap: wrap; gap: 20px 32px; margin: 26px 0 22px; align-items: flex-end; }
+.fgroup { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fgroup > span { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--mute); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--paper); border: 1.5px solid var(--ink); padding: 6px 12px; font-size: 14px; font-weight: 500; cursor: pointer; border-radius: 2px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.chip:hover { border-color: var(--red); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 2px solid var(--ink); background: var(--paper);
+  padding: 10px 16px; font-weight: 600; font-size: 15px; cursor: pointer; border-radius: 2px; }
+.btn:hover { border-color: var(--red); }
+.btn.solid { background: var(--ink); color: #fff; }
+.btn.solid:hover { background: var(--red); border-color: var(--red); }
+.btn.red { background: var(--red); border-color: var(--red); color: #fff; }
+.btn.red:hover { background: var(--ink); border-color: var(--ink); }
+.btn:disabled { opacity: .35; cursor: default; border-color: var(--ink); }
+.count-note { font-size: 14px; color: var(--mute); margin: 0 0 14px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.tile { position: relative; text-align: left; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 4px;
+  padding: 0; cursor: pointer; display: flex; flex-direction: column; overflow: hidden; transition: transform .12s ease; }
+.tile:hover { transform: translateY(-2px); border-color: var(--red); }
+.tile-bar { background: var(--ink); color: #fff; display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .14em; padding: 6px 10px; }
+.tile-bar b { color: var(--red); font-weight: 700; }
+.tile .art { height: 120px; }
+.tile-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.tile-title { font-weight: 800; font-size: 16px; line-height: 1.2; text-wrap: balance; }
+.tile-meta { display: flex; justify-content: space-between; align-items: center; margin-top: auto; gap: 8px; }
+.played { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--red); }
+.tile.is-played .art svg { opacity: .45; }
+
+.art { position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background-image: radial-gradient(circle, var(--dots) 1.1px, transparent 1.4px); background-size: 12px 12px; }
+.art svg { position: relative; height: 82%; width: auto; aspect-ratio: 1; max-width: 100%; background: var(--paper); border-radius: 50%; padding: 4px; }
+.art::before, .art::after { content: ""; position: absolute; width: 14px; height: 14px; border: 0 solid var(--red); }
+.art::before { top: 6px; left: 6px; border-width: 2.5px 0 0 2.5px; }
+.art::after { bottom: 6px; right: 6px; border-width: 0 2.5px 2.5px 0; }
+svg .k { fill: none; stroke: var(--ink); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+svg .r { fill: none; stroke: var(--red); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+svg .w { fill: var(--paper); }
+svg .kf { fill: var(--ink); } svg .rf { fill: var(--red); }
+svg .mono { font-family: var(--mono); font-weight: 700; }
+svg .sans { font-family: var(--display); fill: var(--ink); }
+svg text.red { fill: var(--red); }
+
+.stars { display: inline-flex; gap: 3px; align-items: center; }
+.stars i { width: 9px; height: 9px; background: var(--red); display: block; }
+.stars i.off { background: var(--line); }
+.stars em { font-style: normal; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; margin-left: 6px; color: var(--mute); }
+
+/* Spielansicht */
+.play { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); gap: 28px; align-items: start; margin-top: 18px; }
+.backrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.linkbtn { background: none; border: 0; padding: 6px 0; font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; color: var(--mute); }
+.linkbtn:hover { color: var(--red); }
+.bigcard { border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; background: var(--paper); min-width: 0; }
+.bigcard .tile-bar { font-size: 13px; padding: 10px 18px; }
+.bigcard .tile-bar b { font-size: 16px; }
+.bigcard .art { height: clamp(180px, 28vh, 300px); margin: 18px 18px 0; border: 1.5px solid var(--ink); }
+.bigcard-body { padding: 22px clamp(18px, 3vw, 36px) 30px; }
+.bigcard h2 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 3.6vw, 48px); line-height: 1.05; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.riddle { font-size: clamp(19px, 1.9vw, 28px); line-height: 1.45; margin: 18px 0 0; max-width: 46ch; }
+.riddle p { margin: 0 0 .6em; }
+
+.panel { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.box { border: 1.5px solid var(--ink); border-radius: 4px; padding: 16px; background: var(--paper); }
+.box-h { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--mute); margin: 0 0 10px;
+  display: flex; justify-content: space-between; gap: 8px; }
+.counter { display: flex; align-items: center; gap: 12px; }
+.counter .num { font-family: var(--mono); font-weight: 700; font-size: 48px; line-height: 1; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: center; }
+.counter .btn { min-width: 52px; font-size: 22px; padding: 8px 12px; }
+.counter .btn.plus { flex: 1; font-size: 16px; }
+.timer { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.timer .num { font-family: var(--mono); font-weight: 700; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+.timer .num.warn { color: var(--red); }
+.timer .btns { display: flex; gap: 6px; margin-left: auto; }
+.tips { display: flex; flex-direction: column; gap: 10px; }
+.tip { border-left: 4px solid var(--ink); padding: 6px 0 6px 12px; font-size: 17px; }
+.tip-label { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--red); display: block; margin-bottom: 2px; }
+.tipbtn { justify-content: space-between; width: 100%; }
+
+.solution { margin-top: 28px; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; }
+.solution .tile-bar { background: var(--red); padding: 10px 18px; font-size: 13px; }
+.solution .tile-bar b { color: #fff; }
+.sol-body { padding: 24px clamp(18px, 3vw, 36px) 28px; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 28px; }
+.sol-text { font-size: clamp(17px, 1.5vw, 22px); line-height: 1.5; }
+.sol-text p { margin: 0 0 .7em; }
+.merk { border-left: 6px solid var(--red); padding: 4px 0 4px 16px; font-weight: 600; font-size: clamp(17px, 1.5vw, 22px); line-height: 1.4; }
+.merk .tip-label { margin-bottom: 6px; }
+.talk { margin-top: 22px; }
+.talk ol { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 6px; font-size: 17px; }
+.peek { background: var(--wash); border: 1.5px dashed var(--ink); border-radius: 4px; padding: 14px; font-size: 15px; }
+.peek p { margin: 0 0 .5em; }
+.hint-keys { font-size: 13px; color: var(--mute); line-height: 1.6; }
+kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; padding: 1px 6px; border-radius: 3px; background: var(--wash); color: var(--ink); }
+.navrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.navrow .btn { flex: 1; }
+
+/* Regeln */
+.rules { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 36px; margin-top: 28px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; }
+.steps li::before { content: counter(s); font-family: var(--mono); font-weight: 700; font-size: 20px; background: var(--ink); color: #fff;
+  height: 44px; display: flex; align-items: center; justify-content: center; }
+.steps b { display: block; font-size: 18px; }
+.answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.answers div { border: 1.5px solid var(--ink); padding: 10px 12px; font-weight: 700; }
+.answers div span { display: block; font-weight: 400; font-size: 14px; color: var(--mute); }
+.prose { max-width: 62ch; }
+.prose p { margin: 0 0 .8em; }
+
+@media (max-width: 900px) {
+  .play, .rules, .sol-body { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile .art { height: 96px; }
+  .tile-title { font-size: 14px; }
+  .nav button { padding: 6px 8px; letter-spacing: .08em; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.reveal { animation: rise .35s ease both; }
+@keyframes rise { from { transform: translateY(8px); opacity: .4; } to { transform: none; opacity: 1; } }
+</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="top-in">
+    <button class="brand" id="home" type="button">CYBER<span>STORIES</span></button>
+    <nav class="nav" aria-label="Bereiche">
+      <button type="button" id="nav-cards" data-view="cards">Karten</button>
+      <button type="button" id="nav-rules" data-view="rules">Spielregeln</button>
+    </nav>
+  </div>
+</header>
+<main id="app"></main>
+
+<script>
+const CARDS = [{"nr": 1, "titel": "Das Passwort im Pausenraum", "thema": "Besuchermanagement, Passwörter", "stufe": "leicht", "raetsel": "Ein Besucher wartet allein im Pausenraum eines Maschinenbauunternehmens auf seinen Termin. Auf dem Tisch liegt ein unscheinbarer Zettel. Wenige Tage später tauchen vertrauliche Projektdaten im Internet auf.", "tipps": ["Der Zettel hat mit dem Besucher nichts zu tun, er gehört einem Mitarbeiter.", "Was steht auf Zetteln, die man nicht vergessen will?"], "loesung": "Ein Mitarbeiter hatte sich sein Passwort samt Benutzernamen auf einen Zettel geschrieben und diesen in der Pause liegen lassen. Der Besucher, der unbegleitet warten durfte, fotografierte den Zettel und meldete sich später über den Fernzugang (VPN) im Firmennetz an. So gelangten die Projektdaten nach außen.", "merksatz": "Passwörter gehören in einen Passwort-Manager, nicht auf Papier. Besucher werden begleitet und nicht allein gelassen.", "bild": "<path class=\"k\" d=\"M22 62 h38 v20 a12 12 0 0 1 -12 12 h-14 a12 12 0 0 1 -12 -12 z\"/><path class=\"k\" d=\"M60 68 h5 a7 7 0 0 1 0 14 h-5\"/><path class=\"k\" d=\"M33 54 q-5 -7 0 -14 M47 54 q-5 -7 0 -14\"/><g transform=\"rotate(8 92 40)\"><rect class=\"r w\" x=\"72\" y=\"22\" width=\"40\" height=\"34\" rx=\"2\"/><text x=\"92\" y=\"44\" class=\"mono red\" font-size=\"13\" text-anchor=\"middle\">****<\/text><\/g><path class=\"k\" d=\"M12 100 h96\"/>"}, {"nr": 2, "titel": "Der vergessene Zugang", "thema": "Offboarding, Berechtigungen", "stufe": "leicht", "raetsel": "Monate nach seinem Ausscheiden schickt ein ehemaliger Mitarbeiter einem früheren Kollegen einen Screenshot aus dem internen ERP-System, mit aktuellem Datum. Alle sind schockiert.", "tipps": ["Der ehemalige Mitarbeiter hat nichts gehackt.", "Was hätte am letzten Arbeitstag passieren müssen?"], "loesung": "Sein Benutzerkonto war beim Austritt schlicht nicht deaktiviert worden. Er konnte sich weiterhin von zu Hause einloggen und interne Daten abrufen. Erst durch seinen Screenshot fiel der Fehler auf.", "merksatz": "Beim Austritt werden alle Zugänge am letzten Arbeitstag gesperrt. Dafür braucht es eine feste Checkliste zwischen Personalabteilung und IT.", "bild": "<circle class=\"k\" cx=\"46\" cy=\"40\" r=\"15\"/><path class=\"k\" d=\"M18 98 q0 -30 28 -30 q28 0 28 30\"/><path class=\"r\" d=\"M84.6 72 v-13.2 a8.4 8.4 0 0 1 16.8 0 v-4.8\"/><rect class=\"r w\" x=\"78\" y=\"72\" width=\"30\" height=\"24\" rx=\"3\"/><path class=\"r\" d=\"M93.0 80.4 v7.2\"/>"}, {"nr": 3, "titel": "Die stille Kündigung", "thema": "Passwörter, Innentäter", "stufe": "mittel", "raetsel": "Ein Mitarbeiter kommt morgens ins Werk, doch sein Ausweis öffnet keine Tür mehr und sein Firmenkonto ist gesperrt. Gekündigt hat ihm niemand, und doch ist er digital „verschwunden“.", "tipps": ["Ein Kollege steckt dahinter, aus persönlichen Gründen.", "Das Personalsystem steuert automatisch Ausweise und Konten."], "loesung": "Ein neidischer Kollege hatte das Passwort des Mitarbeiters auf einem Post-it am Monitor gefunden. Damit meldete er sich im Personalsystem an, trug den Kollegen als ausgeschieden ein und löste so automatisch die Sperrung von Ausweis und Konto aus.", "merksatz": "Ein Passwort am Monitor ist ein Passwort für alle. Wer das Konto eines anderen nutzt, handelt in dessen Namen.", "bild": "<rect class=\"k\" x=\"16\" y=\"18\" width=\"88\" height=\"60\" rx=\"4\"/><path class=\"k\" d=\"M52 78 v12 M68 78 v12 M40 92 h40\"/><path class=\"k\" d=\"M28 34 h40 M28 46 h30 M28 58 h36\"/><g transform=\"rotate(10 92 28)\"><rect class=\"rf\" x=\"78\" y=\"12\" width=\"28\" height=\"28\"/><text x=\"92\" y=\"31\" class=\"mono\" fill=\"#fff\" font-size=\"10\" text-anchor=\"middle\">pw:<\/text><\/g>"}, {"nr": 4, "titel": "Die falsche Einladung", "thema": "Phishing, KI, Deepfake", "stufe": "schwer", "raetsel": "Mehrere Ingenieure erscheinen nicht zum wöchentlichen Jour fixe. Stattdessen sitzen sie in einem anderen Online-Meeting, in dem ihr „Teamleiter“ ungewöhnlich viele Fragen zu Projektdetails stellt.", "tipps": ["Die Einladung kam nicht vom Teamleiter.", "Auch Gesicht und Stimme im Meeting waren nicht echt."], "loesung": "Die Ingenieure hatten eine gefälschte Kalendereinladung erhalten. Angreifer hatten sie mit KI im typischen Schreibstil des Teamleiters formuliert und kurz vor den echten Termin gelegt. Im Meeting saß kein echter Mensch, sondern ein KI-generierter Deepfake des Teamleiters, der gezielt Entwicklungsdaten abfragte.", "merksatz": "Auch Einladungen können gefälscht sein. Bei geänderten Terminen oder fremden Meeting-Links lieber kurz beim Absender nachfragen, über einen bekannten Weg.", "bild": "<rect class=\"k\" x=\"20\" y=\"26\" width=\"80\" height=\"72\" rx=\"5\"/><path class=\"k\" d=\"M20 44 h80 M40 18 v16 M80 18 v16\"/><path class=\"k\" d=\"M32 58 h8 M32 72 h8 M32 86 h8 M84 58 h6 M84 86 h6\"/><path class=\"r w\" d=\"M62 52 l20 34 h-40 z\"/><path class=\"r\" d=\"M62 64 v10\"/><circle class=\"rf\" cx=\"62\" cy=\"80\" r=\"2\"/>"}, {"nr": 5, "titel": "Die Stimme aus dem Off", "thema": "Standardpasswörter, Wahre Begebenheit (Luftfahrt)", "stufe": "mittel", "raetsel": "Mitten im Flug erhält ein Pilot Nachrichten im Cockpit, die niemand bei seiner Fluggesellschaft geschickt hat. Der Absender brauchte dafür nur ein einziges Wort, zweimal.", "tipps": ["Nachrichten ans Cockpit laufen über ein Webportal am Boden.", "Das eine Wort ist zugleich Benutzername und Passwort."], "loesung": "Fluggesellschaften nutzen ein zentrales Portal eines Dienstleisters, über das Textnachrichten zwischen Boden und Cockpit laufen, etwa Flugpläne oder technische Daten. Für dieses Portal existierte ein Testzugang mit dem Benutzernamen „test“ und dem Passwort „test“. Wer das ausprobierte, konnte Nachrichten direkt an Piloten senden.", "merksatz": "Test- und Standardzugänge werden vor dem Livebetrieb gelöscht. „test“, „admin“ oder „1234“ probieren Angreifer immer zuerst.", "bild": "<path class=\"k\" d=\"M44 16 q6 0 6 12 v22 l32 18 v8 l-32 -9 v22 l11 8 v6 l-17 -4 l-17 4 v-6 l11 -8 v-22 l-32 9 v-8 l32 -18 v-22 q0 -12 6 -12 z\"/><rect class=\"r w\" x=\"66\" y=\"12\" width=\"46\" height=\"26\" rx=\"6\"/><path class=\"r\" d=\"M76 38 l-6 10 l14 -10\"/><text x=\"89\" y=\"30\" class=\"mono red\" font-size=\"12\" text-anchor=\"middle\">test<\/text>"}, {"nr": 6, "titel": "Geist in der Maschine", "thema": "USB-Sticks, Produktion (OT)", "stufe": "leicht", "raetsel": "Eine CNC-Fräse führt plötzlich fehlerhafte Bewegungen aus. Die Steuerung scheint manipuliert, doch niemand hat etwas am Programm verändert. Der einzige Unterschied zur Vorwoche: In der Halle läuft jetzt Musik.", "tipps": ["Die Musik kommt nicht aus dem Radio.", "Wie gelangt Musik an einen Rechner ohne Internet?"], "loesung": "Ein Kollege hatte einen privaten USB-Stick mit Musik an den Maschinenrechner gesteckt, um während der Arbeit Musik zu hören. Auf dem Stick befand sich Schadsoftware, die sich beim Einstecken selbst startete und in der Steuerungssoftware einnistete. Die Maschine reagierte auf falsche Befehle, die Produktion stand still.", "merksatz": "Private USB-Sticks haben an Firmenrechnern und erst recht an Maschinen nichts zu suchen.", "bild": "<rect class=\"k\" x=\"24\" y=\"44\" width=\"44\" height=\"62\" rx=\"6\"/><rect class=\"k\" x=\"34\" y=\"20\" width=\"24\" height=\"24\"/><path class=\"k\" d=\"M40 28 h4 M48 28 h4\"/><path class=\"r\" d=\"M84 82 v-46 l22 -6 v44\"/><circle class=\"rf\" cx=\"78\" cy=\"84\" r=\"7\"/><circle class=\"rf\" cx=\"100\" cy=\"76\" r=\"7\"/>"}, {"nr": 7, "titel": "Der vergessene Laptop", "thema": "Mobile Geräte, Verschlüsselung", "stufe": "leicht", "raetsel": "Ein Außendienstmitarbeiter kommt von einer Dienstreise zurück. Das Produkt, das er als Neuheit vorstellen wollte, kennt nun auch die Konkurrenz.", "tipps": ["Der Mitarbeiter hat nichts verraten, er hat etwas verloren.", "Ein Passwort beim Hochfahren schützt nicht alles."], "loesung": "Er hatte seinen Laptop im Zug vergessen. Der Laptop war zwar mit einem Anmeldepasswort geschützt, die Festplatte aber nicht verschlüsselt. Der Finder baute sie aus und konnte alle Daten einfach auslesen. Die Konstruktionsdetails landeten bei einem Wettbewerber.", "merksatz": "Ein Anmeldepasswort schützt nicht die Daten auf der Festplatte, erst eine Verschlüsselung tut das. Verlust sofort der IT melden.", "bild": "<rect class=\"k\" x=\"24\" y=\"24\" width=\"72\" height=\"50\" rx=\"3\"/><path class=\"k\" d=\"M12 82 h96 l-6 8 h-84 z\"/><text x=\"60\" y=\"64\" class=\"red\" font-size=\"40\" font-weight=\"800\" text-anchor=\"middle\">?<\/text><path class=\"k\" d=\"M8 106 h104\" stroke-dasharray=\"4 6\"/>"}, {"nr": 8, "titel": "Der verschwundene Urlaub", "thema": "Social Media, Datensparsamkeit (privat)", "stufe": "mittel", "raetsel": "Ein Paar freut sich auf den lang ersehnten Urlaub. Am Flughafen erfahren die beiden, dass ihre Flüge storniert wurden, angeblich von ihnen selbst.", "tipps": ["Die beiden waren sehr stolz auf ihre Reise und wollten das zeigen.", "Auf einer Bordkarte steht mehr als Sitzplatz und Uhrzeit."], "loesung": "Voller Vorfreude hatten die beiden ein Foto ihrer Bordkarten in den sozialen Medien gepostet. Auf der Bordkarte standen Name und Buchungscode. Mehr braucht man bei vielen Fluggesellschaften nicht, um eine Buchung online zu verwalten. Ein Unbekannter loggte sich ein und stornierte die Flüge.", "merksatz": "Bordkarten, Tickets und Ausweise nie öffentlich posten. Barcodes und Codes darauf sind Zugangsdaten.", "bild": "<rect class=\"k\" x=\"10\" y=\"32\" width=\"100\" height=\"56\" rx=\"6\"/><path class=\"k\" d=\"M78 32 v56\" stroke-dasharray=\"3 4\"/><path class=\"k\" d=\"M20 48 h40 M20 60 h28 M20 72 h36\"/><rect class=\"rf\" x=\"84.0\" y=\"44\" width=\"1.2\" height=\"32\"/><rect class=\"rf\" x=\"86.6\" y=\"44\" width=\"2\" height=\"32\"/><rect class=\"rf\" x=\"89.2\" y=\"44\" width=\"1\" height=\"32\"/><rect class=\"rf\" x=\"91.8\" y=\"44\" width=\"2.2\" height=\"32\"/><rect class=\"rf\" x=\"94.4\" y=\"44\" width=\"1.2\" height=\"32\"/><rect class=\"rf\" x=\"97.0\" y=\"44\" width=\"1.6\" height=\"32\"/><rect class=\"rf\" x=\"99.6\" y=\"44\" width=\"1\" height=\"32\"/><rect class=\"rf\" x=\"102.2\" y=\"44\" width=\"1.2\" height=\"32\"/>"}, {"nr": 9, "titel": "Slow Food", "thema": "Smart Home, Updates, Botnetz", "stufe": "leicht", "raetsel": "Ein Mann wundert sich, warum sein Internet seit Wochen so langsam ist. Als der Techniker kommt, findet er die Ursache in der Küche.", "tipps": ["Der Kühlschrank ist mit dem Internet verbunden.", "Er arbeitet heimlich für Fremde."], "loesung": "Der smarte Kühlschrank hatte eine veraltete Firmware mit bekannter Sicherheitslücke. Hacker hatten ihn gekapert und zu einem Teil eines Botnetzes gemacht, also eines Verbunds vieler gehackter Geräte. Gemeinsam schickten sie riesige Datenmengen an fremde Webseiten, um diese lahmzulegen (DDoS-Angriff). Dieser Datenverkehr verstopfte das Heimnetz.", "merksatz": "Auch Kühlschrank, Fernseher und Kamera brauchen Updates. Was keine Updates mehr bekommt, gehört nicht ins Internet.", "bild": "<rect class=\"k\" x=\"28\" y=\"16\" width=\"50\" height=\"92\" rx=\"5\"/><path class=\"k\" d=\"M28 50 h50 M68 28 v12 M68 60 v20\"/><circle cx=\"94\" cy=\"46\" r=\"3.5\" class=\"rf\"/><path class=\"r\" d=\"M89.1 41.1 A7 7 0 0 1 98.9 41.1\"/><path class=\"r\" d=\"M84.1 36.1 A14 14 0 0 1 103.9 36.1\"/><path class=\"r\" d=\"M79.2 31.2 A21 21 0 0 1 108.8 31.2\"/>"}, {"nr": 10, "titel": "Hausarrest", "thema": "Smart Home, Dienstleisterzugänge", "stufe": "mittel", "raetsel": "Kurz nachdem sie eine Online-Bewertung geschrieben hat, kann eine Familie ihre Wohnung nicht mehr verlassen.", "tipps": ["Die Bewertung war schlecht.", "Die Türen werden über eine App gesteuert, und nicht nur die Familie hat Zugriff."], "loesung": "Die Familie hatte dem Installateur ihres Smart-Home-Systems eine schlechte Bewertung gegeben. Er hatte sich bei der Einrichtung heimlich einen eigenen Administratorzugang behalten. Aus Rache verriegelte er per Fernzugriff alle elektronischen Türschlösser. Erst ein Notfall-Reset durch den Hersteller befreite die Familie.", "merksatz": "Nach der Einrichtung durch Dienstleister alle Passwörter ändern und prüfen, wer noch Zugriff hat.", "bild": "<path class=\"k\" d=\"M14 58 L60 20 L106 58 M26 50 v54 h68 v-54\"/><rect class=\"k\" x=\"48\" y=\"66\" width=\"24\" height=\"38\"/><path class=\"r\" d=\"M54.4 82 v-6.4 a5.6 5.6 0 0 1 11.2 0 v6.4\"/><rect class=\"rf\" x=\"50\" y=\"82\" width=\"20\" height=\"16\" rx=\"3\"/><path style=\"stroke:#fff;stroke-width:3;stroke-linecap:round\" d=\"M60.0 87.6 v4.8\"/>"}, {"nr": 11, "titel": "Der gläserne Influencer", "thema": "Webcams, Standardpasswörter", "stufe": "leicht", "raetsel": "Ein Influencer bemerkt, dass private Details aus seinem Alltag in einem Forum auftauchen, obwohl er sie nie gepostet hat.", "tipps": ["Jemand schaut tatsächlich zu.", "Das Gerät steht in der Wohnung und wird längst nicht mehr benutzt."], "loesung": "In seiner Wohnung hing noch eine alte Webcam, die er längst vergessen hatte. Sie war weiterhin mit dem WLAN verbunden und mit dem Standardpasswort des Herstellers über das Internet erreichbar. Ein Fan entdeckte sie, beobachtete wochenlang den Alltag des Influencers und veröffentlichte, was er sah.", "merksatz": "Standardpasswörter immer ändern. Geräte, die nicht mehr genutzt werden, vom Netz trennen.", "bild": "<circle class=\"k\" cx=\"56\" cy=\"50\" r=\"30\"/><circle class=\"k\" cx=\"56\" cy=\"50\" r=\"13\"/><circle class=\"kf\" cx=\"56\" cy=\"50\" r=\"4\"/><path class=\"k\" d=\"M56 80 v12 M34 98 h44\"/><circle class=\"rf\" cx=\"96\" cy=\"22\" r=\"7\"/><text x=\"96\" y=\"44\" class=\"mono red\" font-size=\"11\" text-anchor=\"middle\">REC<\/text>"}, {"nr": 12, "titel": "Die fleißige Maschine", "thema": "Fernwartung, Produktion (OT)", "stufe": "mittel", "raetsel": "Ein Produktionsleiter wundert sich: Eine Fräsmaschine läuft nachts, obwohl niemand im Werk ist.", "tipps": ["Die Maschine wird von außerhalb des Werks gesteuert.", "Der Hersteller braucht manchmal Zugriff, und dieser Zugang war schlecht geschützt."], "loesung": "Die Maschine war über ein Fernwartungsmodul des Herstellers dauerhaft mit dem Internet verbunden, ungeschützt und mit Standardzugang. Angreifer fanden den Zugang, starteten Programme auf der Maschine und kopierten dabei die gespeicherten Fertigungsprogramme und Produktionsdaten.", "merksatz": "Fernwartung nur über gesicherte Zugänge und nur dann einschalten, wenn sie gebraucht wird.", "bild": "<path class=\"k\" d=\"M78.0 66.0 L87.5 72.3 L85.8 78.3 L74.5 79.0 L71.9 82.7 L75.1 93.6 L70.0 97.2 L60.9 90.4 L56.5 91.6 L52.0 102.0 L45.7 101.5 L43.1 90.4 L39.0 88.5 L28.9 93.6 L24.4 89.1 L29.5 79.0 L27.6 74.9 L16.5 72.3 L16.0 66.0 L26.4 61.5 L27.6 57.1 L20.8 48.0 L24.4 42.9 L35.3 46.1 L39.0 43.5 L39.7 32.2 L45.7 30.5 L52.0 40.0 L56.5 40.4 L64.3 32.2 L70.0 34.8 L68.7 46.1 L71.9 49.3 L83.2 48.0 L85.8 53.7 L77.6 61.5 Z\"/><circle class=\"k\" cx=\"52\" cy=\"66\" r=\"10.4\"/><path class=\"rf\" d=\"M96 10 a18 18 0 1 0 16 28 a14 14 0 1 1 -16 -28 z\"/>"}, {"nr": 13, "titel": "Die offene Tür", "thema": "Cloud, Freigaben", "stufe": "leicht", "raetsel": "Ein Zulieferer meldet sich beim Maschinenbauunternehmen: Er kann plötzlich interne Projektdaten einsehen, um die er nie gebeten hat.", "tipps": ["Es war ein Versehen, kein Angriff.", "Der Zulieferer sollte eigentlich nur eine einzige Datei bekommen."], "loesung": "Ein Projektleiter wollte dem Zulieferer nur eine einzige Zeichnung schicken und teilte dazu einen Link aus dem Cloudspeicher. Versehentlich gab er aber den ganzen Projektordner frei, und zwar für „jeden mit dem Link“. Ohne Passwort und ohne Ablaufdatum. Zum Glück war der Zulieferer ehrlich.", "merksatz": "Beim Teilen genau prüfen, was freigegeben wird und für wen. Freigabelinks mit Ablaufdatum versehen.", "bild": "<path class=\"k\" d=\"M30 84 h56 a18 18 0 0 0 0 -36 a24 24 0 0 0 -46 -6 a18 18 0 0 0 -10 42 z\"/><rect class=\"r\" x=\"36\" y=\"58\" width=\"26\" height=\"14\" rx=\"7\"/><rect class=\"r\" x=\"54\" y=\"58\" width=\"26\" height=\"14\" rx=\"7\"/><path class=\"r\" d=\"M58 94 v14 M50 102 l8 8 l8 -8\"/>"}, {"nr": 14, "titel": "Der Drucker, der zu viel wusste", "thema": "Netzwerkgeräte, Updates", "stufe": "mittel", "raetsel": "Eine Bauzeichnung wird nur ein einziges Mal ausgedruckt. Wenige Tage später taucht sie im Internet auf, obwohl niemand sie weitergegeben hat.", "tipps": ["Kein Mensch hat die Zeichnung weitergegeben, aber ein Gerät.", "Das Gerät ist mit dem Internet verbunden und wurde lange nicht aktualisiert."], "loesung": "Der Netzwerkdrucker war nie aktualisiert worden und aus dem Internet erreichbar. Angreifer hatten ihn übernommen und ließen sich von jedem Druckauftrag eine Kopie schicken. So gelangten die vertraulichen Pläne nach außen.", "merksatz": "Drucker sind Computer. Auch sie brauchen Updates, sichere Passwörter und gehören nicht ins offene Internet.", "bild": "<rect class=\"k\" x=\"34\" y=\"16\" width=\"44\" height=\"24\"/><rect class=\"k\" x=\"14\" y=\"40\" width=\"84\" height=\"36\" rx=\"5\"/><path class=\"k\" d=\"M30 76 v28 h52 v-28 M40 86 h32 M40 94 h20\"/><circle class=\"kf\" cx=\"86\" cy=\"52\" r=\"3\"/><circle cx=\"104\" cy=\"30\" r=\"3.5\" class=\"rf\"/><path class=\"r\" d=\"M99.1 25.1 A7 7 0 0 1 108.9 25.1\"/><path class=\"r\" d=\"M94.1 20.1 A14 14 0 0 1 113.9 20.1\"/>"}, {"nr": 15, "titel": "Letzte Grüße", "thema": "Offboarding, Hintertür, Ransomware", "stufe": "mittel", "raetsel": "Ein ganzes Unternehmen steht still. Auf allen Bildschirmen erscheint nur ein Satz: „Ihr habt mich vergessen.“", "tipps": ["Der Satz stammt von einem ehemaligen Mitarbeiter.", "Sein offizielles Konto war gesperrt, aber er hatte noch einen zweiten Weg hinein."], "loesung": "Ein Administrator hatte sich während seiner Zeit in der Firma heimlich einen eigenen Fernzugang zu den Servern eingerichtet. Bei seinem Ausscheiden wurden zwar seine offiziellen Konten gesperrt, von der Hintertür wusste aber niemand. Monate später nutzte er sie, startete eine Verschlüsselungssoftware auf allen Systemen und hinterließ die Nachricht.", "merksatz": "Beim Austritt von Administratoren reicht es nicht, deren Konto zu sperren. Auch gemeinsame Passwörter ändern und Fernzugänge überprüfen.", "bild": "<rect class=\"k\" x=\"16\" y=\"18\" width=\"88\" height=\"60\" rx=\"4\"/><path class=\"k\" d=\"M52 78 v12 M68 78 v12 M40 92 h40\"/><path class=\"r\" d=\"M52.2 44 v-9.6 a7.8 7.8 0 0 1 15.7 0 v9.6\"/><rect class=\"rf\" x=\"46\" y=\"44\" width=\"28\" height=\"24\" rx=\"3\"/><path style=\"stroke:#fff;stroke-width:3;stroke-linecap:round\" d=\"M60.0 52.4 v7.2\"/><path class=\"r\" d=\"M24 26 h10 M86 26 h10\"/>"}, {"nr": 16, "titel": "Die verschwundene Baugruppe", "thema": "Berechtigungen, Datensicherung", "stufe": "leicht", "raetsel": "Ein Konstrukteur will eine wichtige CAD-Datei vom Netzlaufwerk öffnen, doch sie ist verschwunden. Gelöscht hat sie niemand mit böser Absicht.", "tipps": ["Ein Kollege wollte nur aufräumen.", "Es gibt keine Kopie der Datei."], "loesung": "Die Datei lag in einem Ordner, auf den alle Mitarbeiter Vollzugriff hatten. Ein Kollege machte „Frühjahrsputz“ und löschte alles, was *er* nicht brauchte. Weil das Laufwerk nicht gesichert wurde, war die Datei endgültig verloren.", "merksatz": "Jeder bekommt nur die Rechte, die er braucht. Wichtige Daten werden regelmäßig gesichert und die Wiederherstellung wird getestet.", "bild": "<path class=\"k\" d=\"M12 30 h32 l8 10 h56 v58 h-96 z\"/><path class=\"r\" d=\"M46 56 l28 28 M74 56 l-28 28\"/>"}, {"nr": 17, "titel": "Der Chef im Bildschirm", "thema": "Deepfake, CEO-Betrug, Wahre Begebenheit", "stufe": "mittel", "raetsel": "Nach einer Videokonferenz mit dem Chef und mehreren Kollegen überweist die Buchhaltung eilig eine große Summe ins Ausland. Später stellt sich heraus: Keiner der Teilnehmer wusste etwas von dem Call.", "tipps": ["Keiner der Kollegen im Call war echt.", "Mit KI kann man Gesicht und Stimme nachmachen."], "loesung": "Bis auf die Buchhaltung waren alle Teilnehmer des Videocalls Deepfakes. Angreifer hatten Gesichter und Stimmen aus öffentlichen Videos mit KI nachgebildet. Der „Chef“ betonte, die Sache sei dringend und streng vertraulich. Ein ähnlicher Fall kostete 2024 ein internationales Ingenieurbüro rund 25 Millionen US-Dollar.", "merksatz": "Bei Zahlungsaufforderungen mit Zeitdruck und Geheimhaltung immer über einen bekannten Weg zurückrufen. Ungewöhnliche Zahlungen brauchen eine zweite Freigabe.", "bild": "<rect class=\"k\" x=\"12\" y=\"16\" width=\"96\" height=\"70\" rx=\"4\"/><path class=\"k\" d=\"M48 86 v10 M72 86 v10 M38 98 h44\"/><circle class=\"k\" cx=\"60\" cy=\"42\" r=\"14\"/><path class=\"k\" d=\"M34 86 q0 -24 26 -24 q26 0 26 24\"/><path class=\"rf\" d=\"M60 28 a14 14 0 0 1 0 28 z\"/><path class=\"r\" d=\"M60 62 q26 0 26 24\"/>"}, {"nr": 18, "titel": "Ausgesperrt", "thema": "Social Engineering, Identitätsprüfung", "stufe": "schwer", "raetsel": "Ein langjähriger IT-Mitarbeiter wird entlassen, alle seine Zugänge werden noch am selben Tag gesperrt. Trotzdem steht die Firma wenige Wochen später still.", "tipps": ["Der Ex-Mitarbeiter hat sich keinen Zugang gehackt, er hat ihn bekommen.", "Er hat einfach angerufen und sich als jemand anderes ausgegeben."], "loesung": "Der Ex-Mitarbeiter rief beim IT-Support an und gab sich als externer Dienstleister aus. Weil er Abläufe, Namen und Fachbegriffe kannte, wurde er nicht misstrauisch geprüft und bekam einen neuen Zugang. Damit änderte er die Passwörter von rund 2.500 Mitarbeitern und Lieferanten und sperrte sie aus den IT-Systemen aus.", "merksatz": "Wer am Telefon Zugänge oder Passwörter verlangt, wird geprüft, egal wie vertraut er klingt. Insiderwissen ist kein Ausweis.", "bild": "<path class=\"k\" d=\"M26 22 l14 -4 l10 22 l-10 8 q6 18 24 30 l8 -10 l22 10 l-4 14 q-30 6 -56 -24 q-18 -22 -8 -46 z\"/><circle class=\"r\" cx=\"88\" cy=\"30\" r=\"10\"/><path class=\"r\" d=\"M95 37 l16 16 M104 46 l5 -5 M108 50 l4 -4\"/>"}, {"nr": 19, "titel": "Ohne mich geht nichts", "thema": "Innentäter, Sabotage", "stufe": "schwer", "raetsel": "Als einem Mitarbeiter Zuständigkeiten entzogen werden, stürzen plötzlich immer wieder Server ab. Am Tag nach seiner Kündigung kann sich niemand mehr im Unternehmen anmelden.", "tipps": ["Der Mitarbeiter hat die Probleme selbst verursacht, aus Frust.", "Ein Programm wartete darauf, dass sein Konto gesperrt wird."], "loesung": "Aus Frust hatte der Entwickler eigene Schadsoftware auf den Servern versteckt, die sie immer wieder überlastete. Zusätzlich baute er einen „Kill Switch“ ein: ein Programm, das prüfte, ob sein Konto noch aktiv ist. Als sein Konto nach der Kündigung gesperrt wurde, sperrte das Programm automatisch die Konten aller anderen Mitarbeiter.", "merksatz": "Kritische Änderungen an Systemen sollte nie eine Person allein vornehmen können. Vier-Augen-Prinzip und regelmäßige Kontrollen schützen auch vor Innentätern.", "bild": "<rect class=\"k\" x=\"18\" y=\"16\" width=\"84\" height=\"88\" rx=\"12\"/><path class=\"r\" style=\"stroke-width:6\" d=\"M44 42 a26 26 0 1 0 32 0 M60 30 v30\"/>"}, {"nr": 20, "titel": "Falscher Helfer", "thema": "Schadsoftware, Fake-Anleitungen", "stufe": "mittel", "raetsel": "Ein Mitarbeiter will sein Computerproblem selbst lösen und sucht im Internet nach Hilfe. Kurz darauf schlagen die Sicherheitssysteme der Firmen-IT Alarm.", "tipps": ["Die Hilfeseite war nicht echt.", "Der Mitarbeiter hat selbst etwas in seinen PC eingetippt."], "loesung": "Die gefundene Hilfeseite war eine Fälschung von Betrügern. Sie forderte dazu auf, einen Befehl zu kopieren und in die Kommandozeile des PCs einzufügen. Statt das Problem zu lösen, lud der Befehl Schadsoftware herunter und führte sie aus.", "merksatz": "Keine Befehle aus dem Internet kopieren und ausführen. Bei IT-Problemen den eigenen IT-Support fragen.", "bild": "<rect class=\"k\" x=\"10\" y=\"20\" width=\"100\" height=\"80\" rx=\"5\"/><path class=\"k\" d=\"M10 36 h100\"/><circle class=\"kf\" cx=\"20\" cy=\"28\" r=\"2.5\"/><circle class=\"kf\" cx=\"29\" cy=\"28\" r=\"2.5\"/><circle class=\"kf\" cx=\"38\" cy=\"28\" r=\"2.5\"/><path class=\"k\" d=\"M22 54 l12 9 l-12 9\"/><rect class=\"rf\" x=\"40\" y=\"68\" width=\"18\" height=\"5\"/><path class=\"k\" d=\"M22 88 h60\" stroke-dasharray=\"6 4\"/>"}, {"nr": 21, "titel": "Die dringende Rechnung", "thema": "Phishing, Ransomware", "stufe": "leicht", "raetsel": "Montagmorgen: In der Buchhaltung öffnet jemand eine Rechnung. Am Mittwoch stehen im ganzen Werk die Bänder still.", "tipps": ["Die Rechnung war eine E-Mail mit Anhang.", "Der Anhang wollte, dass man etwas „aktiviert“."], "loesung": "Die „Rechnung“ kam per E-Mail von einem angeblichen Lieferanten mit dem Betreff „Letzte Mahnung“. Der Anhang war ein Office-Dokument, das zum Anzeigen aufforderte, „Inhalte zu aktivieren“. Damit startete eine Schadsoftware, die sich zwei Tage lang unbemerkt im Netz ausbreitete und dann alle Server samt Produktionsplanung verschlüsselte.", "merksatz": "Bei unerwarteten Anhängen und Zeitdruck misstrauisch werden. Niemals „Inhalte aktivieren“, wenn man nicht sicher ist, woher die Datei kommt.", "bild": "<rect class=\"k\" x=\"10\" y=\"34\" width=\"82\" height=\"56\" rx=\"3\"/><path class=\"k\" d=\"M10 34 l41 30 l41 -30\"/><path class=\"r\" d=\"M100 18 v54 a9 9 0 0 1 -18 0 v-44 a5.5 5.5 0 0 1 11 0 v40\"/>"}, {"nr": 22, "titel": "Neue Kontoverbindung", "thema": "Rechnungsbetrug, E-Mail-Fälschung", "stufe": "mittel", "raetsel": "Ein Maschinenbauer bezahlt pünktlich und vollständig alle Rechnungen seines wichtigsten Lieferanten. Trotzdem droht der Lieferant nach drei Monaten mit Lieferstopp.", "tipps": ["Das Geld kam nie beim Lieferanten an.", "Eine E-Mail hat dafür gesorgt, dass auf ein anderes Konto überwiesen wird."], "loesung": "Der Einkauf hatte eine E-Mail erhalten: „Unsere Bankverbindung hat sich geändert, bitte nur noch auf dieses Konto überweisen.“ Die Absenderadresse sah fast genauso aus wie die echte, nur ein Buchstabe war vertauscht. Alle Zahlungen gingen seitdem an Betrüger.", "merksatz": "Geänderte Bankdaten immer telefonisch beim Lieferanten bestätigen lassen, über die bekannte Nummer, nicht über die aus der E-Mail.", "bild": "<path class=\"k\" d=\"M14 44 L56 20 L98 44 z M24 50 v32 M42 50 v32 M70 50 v32 M88 50 v32 M14 88 h84\"/><path class=\"r\" d=\"M20 104 H86 Q98 104 104 92\"/><path class=\"r\" d=\"M104 92 l-9 2 M104 92 l1 9\"/>"}, {"nr": 23, "titel": "Der Parkplatz-Code", "thema": "QR-Code-Phishing", "stufe": "mittel", "raetsel": "Ein Mitarbeiter bezahlt am Bahnhof sein Parkticket mit dem Handy. Eine Woche später ist sein Firmen-E-Mail-Konto gekapert.", "tipps": ["Der Fehler passierte beim Bezahlen am Automaten.", "Der Mitarbeiter nutzte dort ein Passwort, das er auch in der Firma verwendet."], "loesung": "Auf dem Parkautomaten klebte ein gefälschter QR-Code. Er führte auf eine Bezahlseite, die zur Anmeldung ein Konto verlangte. Der Mitarbeiter nutzte dafür seine Firmen-E-Mail und dasselbe Passwort wie in der Firma. Die Betrüger probierten die Daten einfach am Firmenportal aus.", "merksatz": "QR-Codes können gefälscht sein, besonders an öffentlichen Orten. Und: Für jeden Dienst ein eigenes Passwort.", "bild": "<rect class=\"kf\" x=\"14.0\" y=\"14.0\" width=\"28.0\" height=\"28.0\"/><rect class=\"w\" x=\"18.0\" y=\"18.0\" width=\"20.0\" height=\"20.0\"/><rect class=\"kf\" x=\"22.0\" y=\"22.0\" width=\"12.0\" height=\"12.0\"/><rect class=\"kf\" x=\"70.0\" y=\"14.0\" width=\"28.0\" height=\"28.0\"/><rect class=\"w\" x=\"74.0\" y=\"18.0\" width=\"20.0\" height=\"20.0\"/><rect class=\"kf\" x=\"78.0\" y=\"22.0\" width=\"12.0\" height=\"12.0\"/><rect class=\"kf\" x=\"14.0\" y=\"70.0\" width=\"28.0\" height=\"28.0\"/><rect class=\"w\" x=\"18.0\" y=\"74.0\" width=\"20.0\" height=\"20.0\"/><rect class=\"kf\" x=\"22.0\" y=\"78.0\" width=\"12.0\" height=\"12.0\"/><rect class=\"kf\" x=\"14.0\" y=\"46.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"14.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"14.0\" y=\"58.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"18.0\" y=\"46.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"18.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"18.0\" y=\"58.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"18.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"22.0\" y=\"46.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"22.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"22.0\" y=\"54.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"22.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"26.0\" y=\"46.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"26.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"30.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"30.0\" y=\"58.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"30.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"34.0\" y=\"46.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"34.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"34.0\" y=\"58.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"38.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"38.0\" y=\"58.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"38.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"42.0\" y=\"46.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"42.0\" y=\"54.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"42.0\" y=\"58.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"46.0\" y=\"18.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"46.0\" y=\"30.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"46.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"46.0\" y=\"58.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"46.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"46.0\" y=\"70.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"46.0\" y=\"78.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"50.0\" y=\"14.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"50.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"50.0\" y=\"70.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"50.0\" y=\"74.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"50.0\" y=\"82.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"50.0\" y=\"90.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"50.0\" y=\"94.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"14.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"22.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"26.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"30.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"38.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"42.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"66.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"70.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"82.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"86.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"90.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"54.0\" y=\"94.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"58.0\" y=\"22.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"58.0\" y=\"26.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"58.0\" y=\"30.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"58.0\" y=\"34.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"58.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"58.0\" y=\"82.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"58.0\" y=\"86.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"58.0\" y=\"90.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"14.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"18.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"22.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"26.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"30.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"34.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"38.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"42.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"46.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"54.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"66.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"70.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"74.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"78.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"62.0\" y=\"82.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"66.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"66.0\" y=\"54.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"66.0\" y=\"58.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"66.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"66.0\" y=\"70.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"66.0\" y=\"74.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"66.0\" y=\"86.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"66.0\" y=\"94.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"70.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"70.0\" y=\"66.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"70.0\" y=\"70.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"70.0\" y=\"86.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"70.0\" y=\"90.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"74.0\" y=\"66.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"74.0\" y=\"74.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"74.0\" y=\"78.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"74.0\" y=\"82.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"74.0\" y=\"86.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"74.0\" y=\"90.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"78.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"78.0\" y=\"66.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"78.0\" y=\"70.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"78.0\" y=\"74.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"78.0\" y=\"78.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"78.0\" y=\"82.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"82.0\" y=\"58.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"82.0\" y=\"82.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"82.0\" y=\"90.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"86.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"86.0\" y=\"54.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"86.0\" y=\"66.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"86.0\" y=\"70.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"86.0\" y=\"74.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"86.0\" y=\"86.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"90.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"90.0\" y=\"58.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"90.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"90.0\" y=\"82.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"90.0\" y=\"94.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"94.0\" y=\"46.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"94.0\" y=\"50.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"94.0\" y=\"54.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"94.0\" y=\"62.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"94.0\" y=\"66.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"94.0\" y=\"70.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"94.0\" y=\"78.0\" width=\"4.2\" height=\"4.2\"/><rect class=\"kf\" x=\"94.0\" y=\"94.0\" width=\"4.2\" height=\"4.2\"/><g transform=\"rotate(-12 82 82)\"><rect class=\"rf\" x=\"64\" y=\"64\" width=\"40\" height=\"40\" rx=\"2\"/><rect x=\"70\" y=\"70\" width=\"28\" height=\"28\" fill=\"none\" stroke=\"#fff\" stroke-width=\"2\" stroke-dasharray=\"3 3\"/><\/g>"}, {"nr": 24, "titel": "Die Nacht der tausend Anfragen", "thema": "Mehr-Faktor-Authentifizierung, Wahre Begebenheit", "stufe": "mittel", "raetsel": "Ein Mitarbeiter wird nachts immer wieder von seinem Handy geweckt. Irgendwann tippt er genervt auf „Ja“. Am nächsten Morgen ist das Firmennetz in fremder Hand.", "tipps": ["Das Handy zeigte Anmeldeanfragen.", "Die Angreifer kannten das Passwort schon, ihnen fehlte nur sein „Ja“."], "loesung": "Angreifer kannten sein Passwort bereits. Ihnen fehlte nur noch die Bestätigung per App (Zwei-Faktor-Anmeldung). Also lösten sie immer wieder Anmeldeversuche aus, bis der Mitarbeiter eine der Anfragen bestätigte, nur damit endlich Ruhe ist. So ähnlich gelangten Angreifer 2022 auch in das Netz eines großen Fahrdienstvermittlers.", "merksatz": "Nur Anmeldungen bestätigen, die man gerade selbst ausgelöst hat. Unerwartete Anfragen sofort der IT melden: Dann ist das Passwort schon bekannt.", "bild": "<rect class=\"k\" x=\"36\" y=\"12\" width=\"48\" height=\"96\" rx=\"8\"/><path class=\"k\" d=\"M54 100 h12\"/><rect class=\"rf\" x=\"42\" y=\"26\" width=\"36\" height=\"12\" rx=\"3\"/><rect class=\"rf\" x=\"42\" y=\"44\" width=\"36\" height=\"12\" rx=\"3\"/><rect class=\"rf\" x=\"42\" y=\"62\" width=\"36\" height=\"12\" rx=\"3\"/><path class=\"k\" d=\"M26 44 l-8 8 l8 8 M94 44 l8 8 l-8 8\"/>"}, {"nr": 25, "titel": "Morgen ist auch noch ein Tag", "thema": "Updates", "stufe": "leicht", "raetsel": "Ein Mitarbeiter klickt seit Wochen jeden Morgen auf denselben Knopf. Eines Tages ist sein Rechner der Ausgangspunkt eines Angriffs auf die gesamte Firma.", "tipps": ["Der Knopf erscheint, wenn der Rechner etwas installieren möchte.", "Er bringt Neuerungen, die Sicherheitslücken schließen."], "loesung": "Der Knopf war „Update später erinnern“. Weil der Neustart immer gerade störte, schob der Mitarbeiter ein wichtiges Sicherheitsupdate immer wieder auf. Angreifer nutzten genau die Lücke, die das Update geschlossen hätte, um über eine präparierte Webseite auf den Rechner und von dort ins Firmennetz zu gelangen.", "merksatz": "Updates schließen Lücken, die Angreifer bereits kennen. Sicherheitsupdates zeitnah installieren, auch wenn der Neustart nervt.", "bild": "<path class=\"k\" d=\"M92 40 A36 36 0 1 0 96 70\"/><path class=\"k\" d=\"M92 22 v18 h-18\"/><circle class=\"r\" cx=\"58\" cy=\"60\" r=\"16\"/><path class=\"r\" d=\"M58 50 v10 l8 5\"/>"}, {"nr": 26, "titel": "Die Sicherung, die keine war", "thema": "Datensicherung, Ransomware", "stufe": "mittel", "raetsel": "Nach einem Hackerangriff sind alle Server verschlüsselt. Die IT bleibt gelassen, denn es gibt ja tägliche Backups. Eine Stunde später ist die Gelassenheit vorbei.", "tipps": ["Die Backups gibt es nicht mehr.", "Die Angreifer kamen an die Sicherungen genauso leicht heran wie an die Server."], "loesung": "Die Sicherungen lagen auf einem Speicher im selben Netzwerk und waren mit demselben Administratorkonto erreichbar. Die Angreifer hatten zuerst die Backups gelöscht und erst danach die Server verschlüsselt.", "merksatz": "Mindestens eine Sicherung muss getrennt vom Netz oder unveränderbar aufbewahrt werden. Und die Wiederherstellung muss regelmäßig geübt werden.", "bild": "<ellipse class=\"k\" cx=\"54\" cy=\"24\" rx=\"36\" ry=\"10\"/><path class=\"k\" d=\"M18 24 v66 a36 10 0 0 0 72 0 v-66 M18 46 a36 10 0 0 0 72 0 M18 68 a36 10 0 0 0 72 0\"/><circle class=\"rf\" cx=\"94\" cy=\"92\" r=\"17\"/><path d=\"M87 85 l14 14 M101 85 l-14 14\" stroke=\"#fff\" stroke-width=\"4\" stroke-linecap=\"round\"/>"}, {"nr": 27, "titel": "Der höfliche Kollege", "thema": "Zutritt, Tailgating", "stufe": "leicht", "raetsel": "Ein Mitarbeiter hält einem Mann mit zwei schweren Kartons freundlich die Tür auf. Zwei Wochen später fließen Daten aus dem Firmennetz ab, ohne dass jemand ein Passwort verraten hätte.", "tipps": ["Der Mann mit den Kartons arbeitet nicht in der Firma.", "Er hat im Gebäude etwas zurückgelassen."], "loesung": "Der Mann mit den Kartons war kein Kollege. Im Gebäude steckte er ein unauffälliges Kästchen in eine freie Netzwerkdose hinter einem Kopierer. Das Gerät verband sich über das Mobilfunknetz mit den Angreifern und gab ihnen direkten Zugang ins interne Netz.", "merksatz": "Wer Unbekannte mit durch die Tür lässt, umgeht jede Zutrittskontrolle. Freundlich nachfragen ist erlaubt: „Zu wem möchten Sie?“", "bild": "<rect class=\"k\" x=\"14\" y=\"12\" width=\"46\" height=\"96\"/><path class=\"k\" d=\"M14 12 l30 8 v96 l-30 -8\"/><circle class=\"kf\" cx=\"38\" cy=\"64\" r=\"3\"/><rect class=\"r w\" x=\"70\" y=\"56\" width=\"38\" height=\"26\"/><path class=\"r\" d=\"M89 56 v26\"/><rect class=\"r w\" x=\"66\" y=\"82\" width=\"42\" height=\"26\"/><path class=\"r\" d=\"M87 82 v26\"/>"}, {"nr": 28, "titel": "Fundsache", "thema": "USB-Köder, Neugier", "stufe": "leicht", "raetsel": "Eine Mitarbeiterin findet auf dem Firmenparkplatz etwas und will es ehrlich zurückgeben. Wenig später schlagen die Sicherheitssysteme Alarm.", "tipps": ["Die Mitarbeiterin wollte wissen, wem der Gegenstand gehört.", "Er wurde absichtlich dort platziert."], "loesung": "Sie hatte einen USB-Stick mit der Aufschrift „Gehälter 2026“ gefunden und ihn an ihren Rechner gesteckt, um herauszufinden, wem er gehört. Angreifer hatten den Stick absichtlich dort verloren. Beim Öffnen der Datei startete eine Schadsoftware.", "merksatz": "Gefundene USB-Sticks nie einstecken, sondern bei der IT abgeben. Neugier und Hilfsbereitschaft sind die Werkzeuge der Angreifer.", "bild": "<rect class=\"k\" x=\"40\" y=\"54\" width=\"54\" height=\"30\" rx=\"5\"/><rect class=\"k\" x=\"94\" y=\"60\" width=\"16\" height=\"18\"/><path class=\"k\" d=\"M98 66 h4 M98 72 h4\"/><path class=\"r\" d=\"M46 60 l-18 -20\"/><g transform=\"rotate(-40 22 30)\"><path class=\"r w\" d=\"M2 22 h30 l8 8 l-8 8 h-30 z\"/><circle class=\"r\" cx=\"30\" cy=\"30\" r=\"2\"/><text x=\"15\" y=\"34\" class=\"mono red\" font-size=\"9\" text-anchor=\"middle\">€€€<\/text><\/g><path class=\"k\" d=\"M8 100 h104\" stroke-dasharray=\"2 6\"/>"}, {"nr": 29, "titel": "Kostenloses WLAN", "thema": "Öffentliches WLAN, Reisen", "stufe": "mittel", "raetsel": "Ein Vertriebler sitzt in der Hotellobby und arbeitet wie immer an seinen Angeboten. Am nächsten Tag unterbietet ein Mitbewerber sein Angebot auf den Euro genau.", "tipps": ["Der Fehler passierte bei der Verbindung mit dem Internet.", "Nicht jedes WLAN mit dem Namen des Hotels gehört auch dem Hotel."], "loesung": "In der Lobby gab es zwei WLANs mit fast gleichem Namen. Eines davon hatte ein Angreifer mit einem kleinen Gerät aufgespannt. Weil der Vertriebler sich ohne VPN verband, konnte der Angreifer den Datenverkehr mitlesen und sich in sein Webmail-Konto einloggen.", "merksatz": "In öffentlichen WLANs immer das Firmen-VPN nutzen, oder besser den Hotspot des eigenen Diensthandys.", "bild": "<circle cx=\"36\" cy=\"84\" r=\"3.5\" class=\"kf\"/><path class=\"k\" d=\"M27.5 75.5 A12 12 0 0 1 44.5 75.5\"/><path class=\"k\" d=\"M19.0 67.0 A24 24 0 0 1 53.0 67.0\"/><path class=\"k\" d=\"M10.5 58.5 A36 36 0 0 1 61.5 58.5\"/><circle cx=\"88\" cy=\"84\" r=\"3.5\" class=\"rf\"/><path class=\"r\" d=\"M80.9 76.9 A10 10 0 0 1 95.1 76.9\"/><path class=\"r\" d=\"M73.9 69.9 A20 20 0 0 1 102.1 69.9\"/><path class=\"r\" d=\"M66.8 62.8 A30 30 0 0 1 109.2 62.8\"/>"}, {"nr": 30, "titel": "Das Telefonat im ICE", "thema": "Vertraulichkeit unterwegs, Social Engineering", "stufe": "mittel", "raetsel": "Ein Projektleiter fährt mit dem Zug nach Hause. Am nächsten Tag ruft ein „Kollege aus der IT“ bei seiner Assistentin an, und sie hilft ihm gern.", "tipps": ["Der Anrufer wusste Dinge, die nur Insider wissen.", "Das Wissen stammt aus dem Zug."], "loesung": "Der Projektleiter hatte im Zug laut telefoniert: Projektname, Kundenname, Namen seines Teams und dass er morgen im Urlaub ist. Ein Mitreisender schrieb mit. Mit diesem Wissen klang sein Anruf bei der Assistentin so glaubwürdig, dass sie ihm die Zugangsdaten zum Projektlaufwerk durchgab.", "merksatz": "In der Öffentlichkeit hören immer andere mit. Vertrauliche Gespräche und Bildschirme gehören nicht in Zug, Café oder Wartebereich.", "bild": "<rect class=\"k\" x=\"14\" y=\"20\" width=\"56\" height=\"74\" rx=\"16\"/><rect class=\"k\" x=\"22\" y=\"30\" width=\"40\" height=\"24\" rx=\"4\"/><circle class=\"kf\" cx=\"28\" cy=\"78\" r=\"4\"/><circle class=\"kf\" cx=\"56\" cy=\"78\" r=\"4\"/><path class=\"k\" d=\"M24 94 l-8 14 M60 94 l8 14\"/><path class=\"r\" d=\"M80 44 q8 10 0 20 M90 36 q14 18 0 36 M100 28 q20 26 0 52\"/>"}, {"nr": 31, "titel": "Der hilfsbereite Support", "thema": "Telefonbetrug, Fernwartung", "stufe": "leicht", "raetsel": "Die IT ruft bei einem Mitarbeiter an, um ein Problem zu beheben, von dem er gar nichts wusste. Er ist dankbar für die schnelle Hilfe. Die Probleme fangen nach dem Anruf jedoch erst an.", "tipps": ["Der Anrufer war nicht von der IT.", "Der Mitarbeiter sollte ein Programm installieren."], "loesung": "Der Anrufer gab sich als IT-Support aus und behauptete, der Rechner des Mitarbeiters sende Viren ins Netz. Er bat ihn, ein Fernwartungsprogramm zu installieren und ihm den angezeigten Code zu nennen. Damit hatte der Angreifer die volle Kontrolle über den Rechner.", "merksatz": "Die IT ruft nicht unaufgefordert an und lässt sich Fernzugriff geben. Im Zweifel auflegen und selbst bei der bekannten IT-Nummer zurückrufen.", "bild": "<path class=\"k\" d=\"M26 66 a34 34 0 0 1 68 0\"/><rect class=\"k\" x=\"18\" y=\"62\" width=\"16\" height=\"28\" rx=\"5\"/><rect class=\"k\" x=\"86\" y=\"62\" width=\"16\" height=\"28\" rx=\"5\"/><path class=\"k\" d=\"M30 90 q2 16 24 16 h6\"/><circle class=\"kf\" cx=\"64\" cy=\"106\" r=\"4\"/><path class=\"r w\" d=\"M60 18 l16 28 h-32 z\"/><path class=\"r\" d=\"M60 28 v8\"/><circle class=\"rf\" cx=\"60\" cy=\"41\" r=\"1.8\"/>"}, {"nr": 32, "titel": "Das Messegeschenk", "thema": "Manipulierte Hardware", "stufe": "mittel", "raetsel": "Ein Ingenieur kommt begeistert von einer Fachmesse zurück und benutzt im Büro sein neues Werbegeschenk. Kurz darauf meldet die IT einen infizierten Rechner.", "tipps": ["Das Werbegeschenk wird am Computer eingesteckt.", "Es ist nicht nur ein Kabel."], "loesung": "Am Stand eines angeblichen Ausstellers gab es kostenlose USB-Ladekabel. Im Stecker steckte ein winziger Chip, der sich am Rechner als Tastatur ausgab und in Sekunden Befehle eintippte, die eine Schadsoftware nachluden.", "merksatz": "Fremde USB-Geräte, auch Kabel, Lüfter und Powerbanks, gehören nicht an Firmenrechner. Werbegeschenke mit USB-Anschluss lieber an der Steckdose nutzen.", "bild": "<path class=\"k\" d=\"M60 108 v-24\"/><rect class=\"k\" x=\"42\" y=\"40\" width=\"36\" height=\"44\" rx=\"4\"/><rect class=\"k\" x=\"47\" y=\"14\" width=\"26\" height=\"26\"/><path class=\"k\" d=\"M53 22 h4 M63 22 h4\"/><rect class=\"rf\" x=\"51\" y=\"53\" width=\"18\" height=\"18\"/><path class=\"r\" d=\"M46 57 h5 M46 62 h5 M46 67 h5 M69 57 h5 M69 62 h5 M69 67 h5\"/>"}, {"nr": 33, "titel": "Der fleißige Assistent", "thema": "KI-Tools, Datenschutz, Wahre Begebenheit", "stufe": "mittel", "raetsel": "Ein Entwickler ist stolz: Er hat ein schwieriges Problem in Rekordzeit gelöst. Wenige Wochen später verbietet die Firmenleitung ein beliebtes Werkzeug für alle.", "tipps": ["Das Werkzeug hat ihm beim Lösen des Problems geholfen.", "Dafür musste er ihm Firmendaten anvertrauen."], "loesung": "Der Entwickler hatte vertraulichen Quellcode und interne Besprechungsnotizen in einen öffentlichen KI-Chatbot kopiert, um sich helfen zu lassen. Damit lagen die Daten auf fremden Servern und konnten je nach Dienst sogar zum Training genutzt werden. 2023 passierte genau das bei einem großen Elektronikkonzern.", "merksatz": "Vertrauliche Daten nur in KI-Werkzeuge eingeben, die die Firma freigegeben hat.", "bild": "<path class=\"k\" d=\"M24 18 h60 a12 12 0 0 1 12 12 v30 a12 12 0 0 1 -12 12 h-38 l-18 16 v-16 h-4 a12 12 0 0 1 -12 -12 v-30 a12 12 0 0 1 12 -12 z\"/><text x=\"54\" y=\"54\" class=\"sans\" font-size=\"22\" font-weight=\"800\" text-anchor=\"middle\">KI<\/text><text x=\"88\" y=\"108\" class=\"mono red\" font-size=\"22\" font-weight=\"700\" text-anchor=\"middle\">&lt;/&gt;<\/text>"}, {"nr": 34, "titel": "Das Fitness-Passwort", "thema": "Passwort-Wiederverwendung", "stufe": "mittel", "raetsel": "Ein Mitarbeiter hat sich in einer Fitness-App angemeldet, um mehr Sport zu machen. Ein halbes Jahr später meldet sich jemand mit seinem Konto im Firmennetz an.", "tipps": ["Die Fitness-App wurde gehackt.", "Der Mitarbeiter ist bei Passwörtern nicht besonders kreativ."], "loesung": "Die Fitness-App wurde gehackt und die Zugangsdaten aller Nutzer im Internet veröffentlicht. Der Mitarbeiter hatte dort dieselbe E-Mail-Adresse und dasselbe Passwort wie für sein Firmenkonto verwendet. Angreifer probieren solche Listen automatisch bei vielen Diensten aus.", "merksatz": "Jedes Konto braucht ein eigenes Passwort. Ein Passwort-Manager merkt sie sich für einen.", "bild": "<path class=\"k\" d=\"M30 46 h60\"/><rect class=\"kf\" x=\"16\" y=\"28\" width=\"10\" height=\"36\" rx=\"2\"/><rect class=\"kf\" x=\"26\" y=\"34\" width=\"6\" height=\"24\" rx=\"1\"/><rect class=\"kf\" x=\"94\" y=\"28\" width=\"10\" height=\"36\" rx=\"2\"/><rect class=\"kf\" x=\"88\" y=\"34\" width=\"6\" height=\"24\" rx=\"1\"/><circle class=\"r\" cx=\"34\" cy=\"90\" r=\"10\"/><path class=\"r\" d=\"M44 90 h52 M86 90 v9 M76 90 v6\"/>"}, {"nr": 35, "titel": "Das Paket, das nie kam", "thema": "SMS-Phishing, Diensthandy", "stufe": "leicht", "raetsel": "Ein Mitarbeiter wartet auf eine Lieferung und tippt auf einen Link in einer SMS. Ein paar Tage später bekommen alle seine Geschäftskontakte merkwürdige Nachrichten von ihm.", "tipps": ["Die SMS war nicht vom Paketdienst.", "Über den Link wurde etwas auf dem Handy installiert."], "loesung": "Die SMS gab vor, von einem Paketdienst zu kommen, und forderte zur Installation einer „Sendungsverfolgungs-App“ auf. Die App war Schadsoftware. Sie las die Kontakte des Diensthandys aus und verschickte von dort weitere betrügerische SMS.", "merksatz": "Apps nur aus den offiziellen Stores installieren. Paket-SMS mit Link sind fast immer Betrug, die Sendungsnummer lieber direkt beim Paketdienst eingeben.", "bild": "<path class=\"k\" d=\"M14 56 h52 v46 h-52 z M14 56 l14 -14 h52 l-14 14 M66 56 l14 -14 v46 l-14 14 M40 56 l14 -14\"/><rect class=\"r w\" x=\"70\" y=\"8\" width=\"42\" height=\"26\" rx=\"6\"/><path class=\"r\" d=\"M80 34 l-6 10 l14 -10\"/><text x=\"91\" y=\"26\" class=\"mono red\" font-size=\"11\" text-anchor=\"middle\">SMS<\/text>"}, {"nr": 36, "titel": "Schnäppchen auf dem Kleinanzeigenmarkt", "thema": "Entsorgung von Altgeräten", "stufe": "mittel", "raetsel": "Ein Student kauft für wenig Geld einen gebrauchten Bürokopierer. Kurz darauf meldet er sich bei einer Zeitung.", "tipps": ["Der Student fand etwas im Gerät.", "Kopierer haben ein Gedächtnis."], "loesung": "Der Kopierer stammte aus der Firma und war beim Austausch an einen Händler gegeben worden. Was niemand bedacht hatte: Der Kopierer hatte eine eingebaute Festplatte, die jedes gescannte und kopierte Dokument speicherte. Darauf fanden sich Personalakten, Verträge und Konstruktionszeichnungen.", "merksatz": "Geräte mit Speicher, also auch Kopierer, Drucker, Handys und Maschinensteuerungen, vor der Entsorgung sicher löschen lassen.", "bild": "<path class=\"k\" d=\"M14 28 h92 v10 h-92 z\"/><rect class=\"k\" x=\"18\" y=\"38\" width=\"84\" height=\"50\" rx=\"4\"/><path class=\"k\" d=\"M30 88 v14 h60 v-14\"/><rect class=\"r w\" x=\"38\" y=\"48\" width=\"44\" height=\"30\" rx=\"3\"/><circle class=\"r\" cx=\"60\" cy=\"63\" r=\"9\"/><circle class=\"rf\" cx=\"60\" cy=\"63\" r=\"2.5\"/>"}, {"nr": 37, "titel": "Im Altpapier", "thema": "Papiermüll, Datenschutz", "stufe": "leicht", "raetsel": "Ein Mitbewerber bringt eine Maschine auf den Markt, die der eigenen verblüffend ähnlich sieht, obwohl die Pläne nie das Haus verlassen haben. Oder doch?", "tipps": ["Die Pläne haben das Haus auf Papier verlassen.", "Niemand hat sie gestohlen, sie wurden weggeworfen."], "loesung": "Alte Ausdrucke von Konstruktionszeichnungen waren im normalen Altpapiercontainer auf dem Hof gelandet, frei zugänglich für jeden. Jemand hatte den Container über Wochen regelmäßig durchsucht.", "merksatz": "Vertrauliche Papiere gehören in die Datentonne oder den Aktenvernichter, nie ins normale Altpapier.", "bild": "<g transform=\"rotate(14 66 36)\"><rect class=\"r w\" x=\"48\" y=\"10\" width=\"38\" height=\"48\"/><path class=\"r\" d=\"M56 22 h22 M56 22 v26 M56 48 h22 M66 32 a6 6 0 1 0 0.1 0\"/><\/g><path class=\"k w\" d=\"M24 44 l8 64 h52 l8 -64 z\"/><path class=\"k\" d=\"M18 44 h80 M46 56 v40 M58 56 v40 M70 56 v40\"/>"}, {"nr": 38, "titel": "Das Interview", "thema": "Fotos und Videos am Arbeitsplatz, Wahre Begebenheit", "stufe": "leicht", "raetsel": "Ein Fernsehteam dreht im Unternehmen einen stolzen Bericht über die neue Fertigungshalle. Am Abend nach der Ausstrahlung meldet sich jemand bei den Anlagen an.", "tipps": ["Die Information wurde im Fernsehen gezeigt, ganz ohne Absicht.", "Achtet auf den Hintergrund des Interviews."], "loesung": "Im Hintergrund des Interviews hing am Leitstand ein Zettel mit Benutzername und Passwort der Anlagensteuerung, gut lesbar in HD. Zuschauer machten Screenshots. 2015 zeigte ein französischer Fernsehsender auf diese Weise ungewollt seine eigenen Passwörter in den Nachrichten.", "merksatz": "Vor Fotos, Videos und Videocalls prüfen, was im Hintergrund zu sehen ist: Whiteboards, Bildschirme, Zettel.", "bild": "<circle class=\"k\" cx=\"30\" cy=\"30\" r=\"12\"/><circle class=\"k\" cx=\"58\" cy=\"30\" r=\"12\"/><rect class=\"k\" x=\"16\" y=\"44\" width=\"60\" height=\"38\" rx=\"4\"/><path class=\"k\" d=\"M76 54 l26 -10 v40 l-26 -10\"/><path class=\"k\" d=\"M46 82 l-14 26 M46 82 v26 M46 82 l14 26\"/><circle class=\"rf\" cx=\"28\" cy=\"56\" r=\"5\"/><text x=\"96\" y=\"104\" class=\"mono red\" font-size=\"11\" text-anchor=\"middle\">LIVE<\/text>"}, {"nr": 39, "titel": "Der Laptop des Technikers", "thema": "Dienstleister, Produktion (OT)", "stufe": "mittel", "raetsel": "Ein Servicetechniker des Maschinenherstellers repariert an einem Vormittag eine Anlage. Am Nachmittag fallen in der ganzen Halle nacheinander die Maschinen aus.", "tipps": ["Die Ursache kam mit dem Techniker in die Halle.", "Sein Laptop war vorher schon bei einem anderen Kunden."], "loesung": "Der Techniker steckte seinen eigenen Laptop direkt ins Produktionsnetz, um die Anlage zu warten. Der Laptop war bei einem vorherigen Kunden mit Schadsoftware infiziert worden. Weil das Produktionsnetz nicht unterteilt war, verbreitete sich die Schadsoftware von Maschine zu Maschine.", "merksatz": "Fremde Geräte kommen nur geprüft und über einen eigenen Zugang ins Netz. Produktionsnetze werden in Bereiche aufgeteilt, damit ein Problem nicht die ganze Halle trifft.", "bild": "<rect class=\"k\" x=\"24\" y=\"16\" width=\"72\" height=\"56\" rx=\"3\"/><path class=\"k\" d=\"M12 80 h96 l-6 8 h-84 z\"/><ellipse class=\"r\" cx=\"60\" cy=\"48\" rx=\"11\" ry=\"14\"/><circle class=\"rf\" cx=\"60\" cy=\"30\" r=\"6\"/><path class=\"r\" d=\"M60 36 v26 M49 42 l-9 -5 M49 50 h-10 M50 57 l-9 5 M71 42 l9 -5 M71 50 h10 M70 57 l9 5\"/>"}, {"nr": 40, "titel": "Nur ein kleines Spiel", "thema": "Homeoffice, private Nutzung", "stufe": "leicht", "raetsel": "Ein Vater arbeitet im Homeoffice. Am Wochenende hat er nur kurz etwas für seine Tochter erledigt. Am Montag sperrt die IT seinen Laptop.", "tipps": ["Die Tochter durfte den Laptop benutzen.", "Sie hat etwas Kostenloses installiert."], "loesung": "Die Tochter wollte auf dem leistungsstarken Firmenlaptop ein Spiel spielen und eine kostenlose Erweiterung dafür installieren. Der Vater hatte sie mit seinem Konto angemeldet. In der Erweiterung steckte ein Programm, das gespeicherte Passwörter aus dem Browser auslas, darunter die Zugänge zum Firmenportal.", "merksatz": "Firmengeräte sind nur für die Arbeit da und nur für die Person, der sie gehören, auch im Homeoffice.", "bild": "<rect class=\"k\" x=\"24\" y=\"12\" width=\"72\" height=\"46\" rx=\"3\"/><path class=\"k\" d=\"M12 64 h96\"/><path class=\"r w\" d=\"M32 70 h56 a18 18 0 0 1 18 18 l2 12 a9 9 0 0 1 -16 6 l-8 -10 h-48 l-8 10 a9 9 0 0 1 -16 -6 l2 -12 a18 18 0 0 1 18 -18 z\"/><path class=\"k\" d=\"M38 80 v14 M31 87 h14\"/><circle class=\"kf\" cx=\"80\" cy=\"82\" r=\"3\"/><circle class=\"kf\" cx=\"88\" cy=\"90\" r=\"3\"/>"}];
+const GROUPS = {
+  alle: { label: "Alle", ids: null },
+  produktion: { label: "Produktion", ids: [6, 12, 27, 28, 39] },
+  buero: { label: "Büro", ids: [1, 16, 21, 25, 31] },
+  einkauf: { label: "Einkauf und Buchhaltung", ids: [17, 21, 22, 24, 36] },
+  vertrieb: { label: "Vertrieb und Außendienst", ids: [7, 23, 29, 30, 32] },
+  fuehrung: { label: "Führung und IT", ids: [2, 4, 15, 18, 19, 26] },
+};
+const LEVELS = { alle: "Alle", leicht: "Leicht", mittel: "Mittel", schwer: "Schwer" };
+const STARS = { leicht: 1, mittel: 2, schwer: 3 };
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("cyberstories:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("cyberstories:" + k, JSON.stringify(v)); } catch (e) {} },
+};
+
+let S = {
+  view: "cards", level: "alle", group: "alle", nr: null,
+  questions: 0, tipsShown: 0, solved: false, peek: false,
+  timer: 0, running: false, played: store.get("played", []),
+};
+let tick = null;
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const md = s => s.split(/\n\s*\n/).map(p => "<p>" + esc(p.trim()).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*(.+?)\*/g, "<i>$1</i>") + "</p>").join("");
+const svg = c => `<svg viewBox="0 0 120 120" aria-hidden="true">${c.bild}</svg>`;
+const stars = lvl => `<span class="stars" title="Schwierigkeit: ${lvl}">${[1, 2, 3].map(i => `<i class="${i <= STARS[lvl] ? "" : "off"}"></i>`).join("")}<em>${lvl}</em></span>`;
+const pad = n => String(n).padStart(2, "0");
+const fmt = s => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+const card = nr => CARDS.find(c => c.nr === nr);
+
+function filtered() {
+  const g = GROUPS[S.group].ids;
+  return CARDS.filter(c => (S.level === "alle" || c.stufe === S.level) && (!g || g.includes(c.nr)));
+}
+
+function go(view, extra = {}) {
+  Object.assign(S, { view }, extra);
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+function startCard(nr) {
+  stopTimer();
+  go("play", { nr, questions: 0, tipsShown: 0, solved: false, peek: false, timer: 0, running: false });
+}
+
+function startTimer() {
+  if (S.running) return;
+  S.running = true;
+  tick = setInterval(() => { S.timer++; const n = $("#timer-num"); if (n) { n.textContent = fmt(S.timer); n.classList.toggle("warn", S.timer >= 600); } }, 1000);
+  updateTimerBtn();
+}
+function stopTimer() { S.running = false; clearInterval(tick); tick = null; updateTimerBtn(); }
+function updateTimerBtn() { const b = $("#timer-toggle"); if (b) b.textContent = S.running ? "Pause" : (S.timer ? "Weiter" : "Start"); }
+
+function markPlayed(nr) {
+  if (!S.played.includes(nr)) { S.played.push(nr); store.set("played", S.played); }
+}
+
+function viewCards() {
+  const list = filtered();
+  const chips = (obj, key) => Object.entries(obj).map(([k, v]) =>
+    `<button type="button" class="chip" id="f-${key}-${k}" data-f="${key}" data-v="${k}" aria-pressed="${S[key] === k}">${typeof v === "string" ? v : v.label}</button>`).join("");
+  return `
+    <p class="eyebrow">Spielleitung · 40 Karten</p>
+    <h1 class="page">Welcher Vorfall wird heute gelöst?</h1>
+    <div class="rule"></div>
+    <div class="filters">
+      <div class="fgroup"><span>Schwierigkeit</span><div class="chips">${chips(LEVELS, "level")}</div></div>
+      <div class="fgroup"><span>Zielgruppe</span><div class="chips">${chips(GROUPS, "group")}</div></div>
+      <div class="fgroup"><span>&nbsp;</span><div class="chips">
+        <button type="button" class="btn red" id="random" ${list.length ? "" : "disabled"}>Zufällige Karte</button>
+        ${S.played.length ? `<button type="button" class="btn" id="reset-played">Gespielt zurücksetzen</button>` : ""}
+      </div></div>
+    </div>
+    <p class="count-note">${list.length} von 40 Karten${S.played.length ? ` · ${S.played.length} bereits gespielt` : ""}</p>
+    <div class="grid">${list.map(c => `
+      <button type="button" class="tile${S.played.includes(c.nr) ? " is-played" : ""}" data-nr="${c.nr}" id="tile-${c.nr}">
+        <span class="tile-bar"><span>RÄTSEL</span><b>#${pad(c.nr)}</b></span>
+        <span class="art">${svg(c)}</span>
+        <span class="tile-body">
+          <span class="tile-title">${esc(c.titel)}</span>
+          <span class="tile-meta">${stars(c.stufe)}${S.played.includes(c.nr) ? `<span class="played">Gespielt</span>` : ""}</span>
+        </span>
+      </button>`).join("")}
+    </div>`;
+}
+
+function viewPlay() {
+  const c = card(S.nr);
+  const list = filtered();
+  const idx = list.findIndex(x => x.nr === c.nr);
+  const tips = c.tipps.slice(0, S.tipsShown).map((t, i) => `<div class="tip reveal"><span class="tip-label">Tipp ${i + 1}</span>${esc(t)}</div>`).join("");
+  const nextTip = S.tipsShown < c.tipps.length
+    ? `<button type="button" class="btn tipbtn" id="tip"><span>Tipp ${S.tipsShown + 1} zeigen</span><kbd>T</kbd></button>` : "";
+  return `
+    <div class="backrow">
+      <button type="button" class="linkbtn" id="back">← Alle Karten</button>
+      <span>${stars(c.stufe)}</span>
+    </div>
+    <div class="play">
+      <article class="bigcard" aria-label="Rätselkarte">
+        <div class="tile-bar"><span>CYBER<b style="font-size:inherit">STORIES</b></span><b>#${pad(c.nr)}</b></div>
+        <div class="art">${svg(c)}</div>
+        <div class="bigcard-body">
+          <h2>${esc(c.titel)}</h2>
+          <div class="rule"></div>
+          <div class="riddle">${md(c.raetsel)}</div>
+        </div>
+      </article>
+      <aside class="panel" aria-label="Bedienfeld der Spielleitung">
+        <div class="box">
+          <p class="box-h"><span>Gestellte Fragen</span><span><kbd>F</kbd></span></p>
+          <div class="counter">
+            <button type="button" class="btn" id="q-minus" aria-label="Eine Frage abziehen">−</button>
+            <span class="num" id="q-num" aria-live="polite">${S.questions}</span>
+            <button type="button" class="btn solid plus" id="q-plus">+ Frage</button>
+          </div>
+        </div>
+        <div class="box">
+          <p class="box-h"><span>Zeit</span><span><kbd>Leertaste</kbd></span></p>
+          <div class="timer">
+            <span class="num${S.timer >= 600 ? " warn" : ""}" id="timer-num">${fmt(S.timer)}</span>
+            <span class="btns">
+              <button type="button" class="btn solid" id="timer-toggle">${S.running ? "Pause" : (S.timer ? "Weiter" : "Start")}</button>
+              <button type="button" class="btn" id="timer-reset" aria-label="Zeit zurücksetzen">↺</button>
+            </span>
+          </div>
+        </div>
+        <div class="box">
+          <p class="box-h"><span>Tipps</span><span>${S.tipsShown} von ${c.tipps.length}</span></p>
+          <div class="tips">${tips}${nextTip}${!tips && !nextTip ? "" : ""}</div>
+        </div>
+        ${S.solved ? "" : `<button type="button" class="btn red" id="solve">Lösung aufdecken <kbd>L</kbd></button>`}
+        <div>
+          <button type="button" class="linkbtn" id="peek" aria-expanded="${S.peek}">${S.peek ? "Spickzettel ausblenden" : "Spickzettel für die Spielleitung"}</button>
+          ${S.peek && !S.solved ? `<div class="peek"><p><b>Nur für dich.</b> Nicht am Beamer öffnen.</p>${md(c.loesung)}</div>` : ""}
+        </div>
+        <div class="navrow">
+          <button type="button" class="btn" id="prev" ${idx > 0 ? "" : "disabled"}>← Vorherige</button>
+          <button type="button" class="btn" id="next" ${idx >= 0 && idx < list.length - 1 ? "" : "disabled"}>Nächste →</button>
+        </div>
+        <p class="hint-keys">Tasten: <kbd>F</kbd> Frage zählen · <kbd>T</kbd> Tipp · <kbd>L</kbd> Lösung · <kbd>Leertaste</kbd> Zeit · <kbd>←</kbd> <kbd>→</kbd> Karte wechseln</p>
+      </aside>
+    </div>
+    ${S.solved ? `
+    <section class="solution reveal" id="solution" aria-label="Lösung">
+      <div class="tile-bar"><span>LÖSUNG</span><b>${S.questions} ${S.questions === 1 ? "Frage" : "Fragen"} · ${S.tipsShown} ${S.tipsShown === 1 ? "Tipp" : "Tipps"} · ${fmt(S.timer)}</b></div>
+      <div class="sol-body">
+        <div class="sol-text">${md(c.loesung)}</div>
+        <div>
+          <div class="merk"><span class="tip-label">Merksatz</span>${md(c.merksatz)}</div>
+          <div class="talk">
+            <p class="box-h"><span>Nachbesprechung</span></p>
+            <ol>
+              <li>Könnte das bei uns auch passieren?</li>
+              <li>Woran hätte man den Vorfall früher erkennen können?</li>
+              <li>Wen rufen wir an, wenn uns so etwas auffällt?</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>` : ""}`;
+}
+
+function viewRules() {
+  return `
+    <p class="eyebrow">So wird gespielt</p>
+    <h1 class="page">Spielregeln</h1>
+    <div class="rule"></div>
+    <div class="rules">
+      <ol class="steps">
+        <li><div><b>Karte wählen</b>Die Spielleitung wählt eine Karte und liest Titel und Rätsel vor. Das Rätsel steht groß auf dem Bildschirm, die Lösung bleibt verdeckt.</div></li>
+        <li><div><b>Fragen stellen</b>Die Gruppe stellt Fragen, die sich mit Ja oder Nein beantworten lassen. Die Spielleitung zählt mit.</div></li>
+        <li><div><b>Tipps geben</b>Kommt die Gruppe einige Minuten nicht weiter, deckt die Spielleitung den ersten Tipp auf, später den zweiten.</div></li>
+        <li><div><b>Lösen</b>Gelöst ist die Karte, wenn die Gruppe den Kern nennt: was passiert ist und welcher Fehler es möglich gemacht hat.</div></li>
+        <li><div><b>Auflösen und besprechen</b>Lösung und Merksatz aufdecken und gemeinsam überlegen, ob das auch bei uns passieren könnte. Dieser Teil darf so lange dauern wie das Rätseln.</div></li>
+      </ol>
+      <div class="prose">
+        <p class="box-h"><span>Erlaubte Antworten</span></p>
+        <div class="answers">
+          <div>Ja</div><div>Nein</div>
+          <div>Unwichtig<span>spielt für die Lösung keine Rolle</span></div>
+          <div>Teilweise<span>halb richtig</span></div>
+        </div>
+        <p class="box-h" style="margin-top:26px"><span>Tipps für die Spielleitung</span></p>
+        <p>Lies die Lösung vor dem Spiel. Dafür gibt es den Spickzettel im Bedienfeld, öffne ihn aber nicht, während der Bildschirm für alle sichtbar ist.</p>
+        <p>Bewerte großzügig und sag ruhig „Teilweise“, wenn die Gruppe nah dran ist. Es geht nicht darum, wer sich mit IT auskennt.</p>
+        <p>Nach etwa zehn Minuten ohne Fortschritt beide Tipps geben und dann auflösen. Die Zeitanzeige wird ab zehn Minuten rot.</p>
+        <p><b>Wettbewerb:</b> Mehrere Teams spielen dieselbe Karte. Gewonnen hat das Team mit den wenigsten Fragen, jeder Tipp zählt als fünf Fragen.</p>
+        <button type="button" class="btn solid" id="to-cards" style="margin-top:8px">Zu den Karten</button>
+      </div>
+    </div>`;
+}
+
+function render() {
+  const app = $("#app");
+  app.innerHTML = S.view === "play" && S.nr ? viewPlay() : S.view === "rules" ? viewRules() : viewCards();
+  document.querySelectorAll(".nav button").forEach(b => b.setAttribute("aria-current", String(b.dataset.view === S.view || (S.view === "play" && b.dataset.view === "cards"))));
+  updateTimerBtn();
+}
+
+function act(id) {
+  const c = S.nr && card(S.nr);
+  const list = filtered();
+  const idx = c ? list.findIndex(x => x.nr === c.nr) : -1;
+  switch (id) {
+    case "q-plus": S.questions++; if (!S.running && !S.solved) startTimer(); $("#q-num").textContent = S.questions; return;
+    case "q-minus": S.questions = Math.max(0, S.questions - 1); $("#q-num").textContent = S.questions; return;
+    case "timer-toggle": S.running ? stopTimer() : startTimer(); return;
+    case "timer-reset": stopTimer(); S.timer = 0; $("#timer-num").textContent = fmt(0); $("#timer-num").classList.remove("warn"); updateTimerBtn(); return;
+    case "tip": if (S.tipsShown < c.tipps.length) { S.tipsShown++; render(); } return;
+    case "solve": S.solved = true; S.peek = false; stopTimer(); markPlayed(c.nr); render(); setTimeout(() => $("#solution")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); return;
+    case "peek": S.peek = !S.peek; render(); return;
+    case "prev": if (idx > 0) startCard(list[idx - 1].nr); return;
+    case "next": if (idx >= 0 && idx < list.length - 1) startCard(list[idx + 1].nr); return;
+    case "back": case "home": case "to-cards": stopTimer(); go("cards"); return;
+    case "random": {
+      const fresh = list.filter(x => !S.played.includes(x.nr));
+      const pool = fresh.length ? fresh : list;
+      if (pool.length) startCard(pool[Math.floor(Math.random() * pool.length)].nr);
+      return;
+    }
+    case "reset-played": S.played = []; store.set("played", []); render(); return;
+  }
+}
+
+document.addEventListener("click", e => {
+  const nav = e.target.closest(".nav button");
+  if (nav) { stopTimer(); go(nav.dataset.view); return; }
+  const f = e.target.closest("[data-f]");
+  if (f) { S[f.dataset.f] = f.dataset.v; store.set("filters", { level: S.level, group: S.group }); render(); return; }
+  const t = e.target.closest(".tile");
+  if (t) { startCard(+t.dataset.nr); return; }
+  const b = e.target.closest("button[id]");
+  if (b) act(b.id);
+});
+
+document.addEventListener("keydown", e => {
+  if (S.view !== "play" || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.target.closest("input, textarea")) return;
+  const k = e.key.toLowerCase();
+  const map = { f: "q-plus", "+": "q-plus", "-": "q-minus", t: "tip", l: "solve", arrowleft: "prev", arrowright: "next", escape: "back" };
+  if (e.key === " ") { e.preventDefault(); act("timer-toggle"); return; }
+  if (map[k]) { if (k === "l" && S.solved) return; e.preventDefault(); act(map[k]); }
+});
+
+function start(data) {
+  const f = store.get("filters", null);
+  if (f) { S.level = f.level in LEVELS ? f.level : "alle"; S.group = f.group in GROUPS ? f.group : "alle"; }
+  if (data && data.view) { Object.assign(S, data, { running: false, played: store.get("played", []) }); }
+  render();
+  if (data && data.wasRunning) startTimer();
+}
+window.claude?.hot?.snapshot?.(() => ({ view: S.view, level: S.level, group: S.group, nr: S.nr, questions: S.questions,
+  tipsShown: S.tipsShown, solved: S.solved, peek: S.peek, timer: S.timer, wasRunning: S.running }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+</body>
+</html>
