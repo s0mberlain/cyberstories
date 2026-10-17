@@ -1,0 +1,13 @@
+{
+  "name": "cyberstories",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rätselkartenspiel für Cyber Security Awareness (Deutsch und Englisch)",
+  "scripts": {
+    "bauen": "python3 werkzeug/bauen.py",
+    "pruefen": "python3 werkzeug/bauen.py --pruefen"
+  },
+  "devDependencies": {
+    "playwright": "1.48.2"
+  }
+}
