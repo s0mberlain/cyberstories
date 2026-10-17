@@ -1,0 +1,533 @@
+<title>Cyberstories</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/*SCHRIFTEN*/
+/* Layout: schwarze Kopfleiste wie auf den Karten, darunter Übersicht als Kartenraster
+   oder Spielansicht mit großer Karte links und Bedienfeld rechts. Ein festes Erscheinungsbild:
+   Papierweiß, Tinte, Signalrot, wie das gedruckte Deck. */
+:root {
+  --paper: #ffffff;
+  --ink: #111111;
+  --red: #d7191c;
+  --mute: #5f5b5b;
+  --line: #d9d4d4;
+  --wash: #f4f1f1;
+  --dots: rgba(17, 17, 17, .22);
+  --display: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45;
+  -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+
+.top { background: var(--ink); color: #fff; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.top-in { display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1400px; margin: 0 auto; }
+.brand { font-family: var(--mono); font-weight: 700; letter-spacing: .28em; font-size: 14px; background: none; border: 0; cursor: pointer; padding: 4px 0; }
+.brand span { color: var(--red); }
+.nav { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.nav button { background: none; border: 1px solid transparent; color: #cfcaca; font-family: var(--mono); font-size: 12px;
+  letter-spacing: .14em; text-transform: uppercase; padding: 8px 12px; border-radius: 2px; cursor: pointer; }
+.nav button[aria-current="true"] { color: #fff; border-color: #fff; }
+.nav button:hover { color: #fff; }
+
+main { max-width: 1400px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--mute); margin: 0 0 6px; }
+h1.page { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 4vw, 44px); letter-spacing: -.02em; line-height: 1.05; margin: 0; text-wrap: balance; }
+.rule { width: 48px; height: 4px; background: var(--red); margin: 14px 0 0; }
+
+/* Übersicht */
+.filters { display: flex; flex-wrap: wrap; gap: 20px 32px; margin: 26px 0 22px; align-items: flex-end; }
+.fgroup { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fgroup > span { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--mute); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--paper); border: 1.5px solid var(--ink); padding: 6px 12px; font-size: 14px; font-weight: 500; cursor: pointer; border-radius: 2px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.chip:hover { border-color: var(--red); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 2px solid var(--ink); background: var(--paper);
+  padding: 10px 16px; font-weight: 600; font-size: 15px; cursor: pointer; border-radius: 2px; }
+.btn:hover { border-color: var(--red); }
+.btn.solid { background: var(--ink); color: #fff; }
+.btn.solid:hover { background: var(--red); border-color: var(--red); }
+.btn.red { background: var(--red); border-color: var(--red); color: #fff; }
+.btn.red:hover { background: var(--ink); border-color: var(--ink); }
+.btn:disabled { opacity: .35; cursor: default; border-color: var(--ink); }
+.count-note { font-size: 14px; color: var(--mute); margin: 0 0 14px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.tile { position: relative; text-align: left; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 4px;
+  padding: 0; cursor: pointer; display: flex; flex-direction: column; overflow: hidden; transition: transform .12s ease; }
+.tile:hover { transform: translateY(-2px); border-color: var(--red); }
+.tile-bar { background: var(--ink); color: #fff; display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .14em; padding: 6px 10px; }
+.tile-bar b { color: var(--red); font-weight: 700; }
+.tile .art { height: 120px; }
+.tile-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.tile-title { font-weight: 800; font-size: 16px; line-height: 1.2; text-wrap: balance; }
+.tile-meta { display: flex; justify-content: space-between; align-items: center; margin-top: auto; gap: 8px; }
+.played { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--red); }
+.tile.is-played .art svg { opacity: .45; }
+
+.art { position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background-image: radial-gradient(circle, var(--dots) 1.1px, transparent 1.4px); background-size: 12px 12px; }
+.art svg { position: relative; height: 82%; width: auto; aspect-ratio: 1; max-width: 100%; background: var(--paper); border-radius: 50%; padding: 4px; }
+.art::before, .art::after { content: ""; position: absolute; width: 14px; height: 14px; border: 0 solid var(--red); }
+.art::before { top: 6px; left: 6px; border-width: 2.5px 0 0 2.5px; }
+.art::after { bottom: 6px; right: 6px; border-width: 0 2.5px 2.5px 0; }
+svg .k { fill: none; stroke: var(--ink); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+svg .r { fill: none; stroke: var(--red); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+svg .w { fill: var(--paper); }
+svg .kf { fill: var(--ink); } svg .rf { fill: var(--red); }
+svg .mono { font-family: var(--mono); font-weight: 700; }
+svg .sans { font-family: var(--display); fill: var(--ink); }
+svg text.red { fill: var(--red); }
+
+.stars { display: inline-flex; gap: 3px; align-items: center; }
+.stars i { width: 9px; height: 9px; background: var(--red); display: block; }
+.stars i.off { background: var(--line); }
+.stars em { font-style: normal; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; margin-left: 6px; color: var(--mute); }
+
+/* Spielansicht */
+.play { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); gap: 28px; align-items: start; margin-top: 18px; }
+.backrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.linkbtn { background: none; border: 0; padding: 6px 0; font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; color: var(--mute); }
+.linkbtn:hover { color: var(--red); }
+.bigcard { border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; background: var(--paper); min-width: 0; }
+.bigcard .tile-bar { font-size: 13px; padding: 10px 18px; }
+.bigcard .tile-bar b { font-size: 16px; }
+.bigcard .art { height: clamp(180px, 28vh, 300px); margin: 18px 18px 0; border: 1.5px solid var(--ink); }
+.bigcard-body { padding: 22px clamp(18px, 3vw, 36px) 30px; }
+.bigcard h2 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 3.6vw, 48px); line-height: 1.05; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.riddle { font-size: clamp(19px, 1.9vw, 28px); line-height: 1.45; margin: 18px 0 0; max-width: 46ch; }
+.riddle p { margin: 0 0 .6em; }
+
+.panel { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.box { border: 1.5px solid var(--ink); border-radius: 4px; padding: 16px; background: var(--paper); }
+.box-h { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--mute); margin: 0 0 10px;
+  display: flex; justify-content: space-between; gap: 8px; }
+.counter { display: flex; align-items: center; gap: 12px; }
+.counter .num { font-family: var(--mono); font-weight: 700; font-size: 48px; line-height: 1; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: center; }
+.counter .btn { min-width: 52px; font-size: 22px; padding: 8px 12px; }
+.counter .btn.plus { flex: 1; font-size: 16px; }
+.timer { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.timer .num { font-family: var(--mono); font-weight: 700; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+.timer .num.warn { color: var(--red); }
+.timer .btns { display: flex; gap: 6px; margin-left: auto; }
+.tips { display: flex; flex-direction: column; gap: 10px; }
+.tip { border-left: 4px solid var(--ink); padding: 6px 0 6px 12px; font-size: 17px; }
+.tip-label { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--red); display: block; margin-bottom: 2px; }
+.tipbtn { justify-content: space-between; width: 100%; }
+
+.solution { margin-top: 28px; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; }
+.solution .tile-bar { background: var(--red); padding: 10px 18px; font-size: 13px; }
+.solution .tile-bar b { color: #fff; }
+.sol-body { padding: 24px clamp(18px, 3vw, 36px) 28px; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 28px; }
+.sol-text { font-size: clamp(17px, 1.5vw, 22px); line-height: 1.5; }
+.sol-text p { margin: 0 0 .7em; }
+.merk { border-left: 6px solid var(--red); padding: 4px 0 4px 16px; font-weight: 600; font-size: clamp(17px, 1.5vw, 22px); line-height: 1.4; }
+.merk .tip-label { margin-bottom: 6px; }
+.talk { margin-top: 22px; }
+.talk ol { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 6px; font-size: 17px; }
+.peek { background: var(--wash); border: 1.5px dashed var(--ink); border-radius: 4px; padding: 14px; font-size: 15px; }
+.peek p { margin: 0 0 .5em; }
+.hint-keys { font-size: 13px; color: var(--mute); line-height: 1.6; }
+kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; padding: 1px 6px; border-radius: 3px; background: var(--wash); color: var(--ink); }
+.navrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.navrow .btn { flex: 1; }
+
+/* Regeln */
+.rules { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 36px; margin-top: 28px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; align-items: start; }
+.steps li::before { content: counter(s); font-family: var(--mono); font-weight: 700; font-size: 20px; background: var(--ink); color: #fff;
+  height: 44px; display: flex; align-items: center; justify-content: center; }
+.steps b { display: block; font-size: 18px; }
+.answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.answers div { border: 1.5px solid var(--ink); padding: 10px 12px; font-weight: 700; }
+.answers div span { display: block; font-weight: 400; font-size: 14px; color: var(--mute); }
+.prose { max-width: 62ch; }
+.prose p { margin: 0 0 .8em; }
+
+@media (max-width: 900px) {
+  .play, .rules, .sol-body { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile .art { height: 96px; }
+  .tile-title { font-size: 14px; }
+  .nav button { padding: 6px 8px; letter-spacing: .08em; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.reveal { animation: rise .35s ease both; }
+@keyframes rise { from { transform: translateY(8px); opacity: .4; } to { transform: none; opacity: 1; } }
+.lang { display: flex; border: 1px solid #5c5757; border-radius: 2px; overflow: hidden; }
+.lang button { background: none; border: 0; color: #cfcaca; font-family: var(--mono); font-size: 12px; letter-spacing: .12em; padding: 7px 10px; cursor: pointer; }
+.lang button[aria-pressed="true"] { background: #fff; color: var(--ink); }
+.lang button:hover { color: #fff; }
+.lang button[aria-pressed="true"]:hover { color: var(--ink); }
+.fallback { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  border: 1.5px solid var(--red); color: var(--red); padding: 4px 8px; margin: 0 0 12px; }
+.tile .fallback { font-size: 9px; padding: 2px 5px; margin: 0; }
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <button class="brand" id="home" type="button">CYBER<span>STORIES</span></button>
+    <nav class="nav" aria-label="Navigation">
+      <button type="button" id="nav-cards" data-view="cards"></button>
+      <button type="button" id="nav-rules" data-view="rules"></button>
+    </nav>
+    <div class="lang" role="group" aria-label="Sprache / Language">
+      <button type="button" id="lang-de" data-lang="de">DE</button>
+      <button type="button" id="lang-en" data-lang="en">EN</button>
+    </div>
+  </div>
+</header>
+<main id="app"></main>
+
+<script>
+const CARDS = /*DATA*/[];
+
+const T = {
+  de: {
+    navCards: "Karten", navRules: "Spielregeln",
+    eyebrowCards: n => `Spielleitung · ${n} Karten`, headCards: "Welcher Vorfall wird heute gelöst?",
+    level: "Schwierigkeit", group: "Zielgruppe", all: "Alle",
+    levels: { leicht: "Leicht", mittel: "Mittel", schwer: "Schwer" },
+    groups: { produktion: "Produktion", buero: "Büro", einkauf: "Einkauf und Buchhaltung", vertrieb: "Vertrieb und Außendienst", fuehrung: "Führung und IT" },
+    random: "Zufällige Karte", resetPlayed: "Gespielt zurücksetzen",
+    countNote: (a, b, p) => `${a} von ${b} Karten` + (p ? ` · ${p} bereits gespielt` : ""),
+    riddle: "RÄTSEL", solution: "LÖSUNG", played: "Gespielt", allCards: "← Alle Karten",
+    cardLabel: "Rätselkarte", panelLabel: "Bedienfeld der Spielleitung",
+    questions: "Gestellte Fragen", minusQ: "Eine Frage abziehen", plusQ: "+ Frage",
+    time: "Zeit", space: "Leertaste", start: "Start", pause: "Pause", resume: "Weiter", resetTime: "Zeit zurücksetzen",
+    tips: "Tipps", ofN: (a, b) => `${a} von ${b}`, tip: i => `Tipp ${i}`, showTip: i => `Tipp ${i} zeigen`,
+    reveal: "Lösung aufdecken", peekOpen: "Spickzettel für die Spielleitung", peekClose: "Spickzettel ausblenden",
+    peekWarn: "<b>Nur für dich.</b> Nicht am Beamer öffnen.",
+    prev: "← Vorherige", next: "Nächste →",
+    keys: "Tasten: <kbd>F</kbd> Frage zählen · <kbd>T</kbd> Tipp · <kbd>L</kbd> Lösung · <kbd>Leertaste</kbd> Zeit · <kbd>←</kbd> <kbd>→</kbd> Karte wechseln",
+    stats: (q, t, time) => `${q} ${q === 1 ? "Frage" : "Fragen"} · ${t} ${t === 1 ? "Tipp" : "Tipps"} · ${time}`,
+    takeaway: "Merksatz", debrief: "Nachbesprechung",
+    debriefQs: ["Könnte das bei uns auch passieren?", "Woran hätte man den Vorfall früher erkennen können?", "Wen rufen wir an, wenn uns so etwas auffällt?"],
+    fallback: "Nur auf Englisch verfügbar", fallbackShort: "nur EN", difficulty: "Schwierigkeit",
+    rulesEyebrow: "So wird gespielt", rulesHead: "Spielregeln",
+    steps: [
+      ["Karte wählen", "Die Spielleitung wählt eine Karte und liest Titel und Rätsel vor. Das Rätsel steht groß auf dem Bildschirm, die Lösung bleibt verdeckt."],
+      ["Fragen stellen", "Die Gruppe stellt Fragen, die sich mit Ja oder Nein beantworten lassen. Die Spielleitung zählt mit."],
+      ["Tipps geben", "Kommt die Gruppe einige Minuten nicht weiter, deckt die Spielleitung den ersten Tipp auf, später den zweiten."],
+      ["Lösen", "Gelöst ist die Karte, wenn die Gruppe den Kern nennt: was passiert ist und welcher Fehler es möglich gemacht hat."],
+      ["Auflösen und besprechen", "Lösung und Merksatz aufdecken und gemeinsam überlegen, ob das auch bei uns passieren könnte. Dieser Teil darf so lange dauern wie das Rätseln."],
+    ],
+    answersHead: "Erlaubte Antworten",
+    answers: [["Ja", ""], ["Nein", ""], ["Unwichtig", "spielt für die Lösung keine Rolle"], ["Teilweise", "halb richtig"]],
+    gmHead: "Tipps für die Spielleitung",
+    gm: [
+      "Lies die Lösung vor dem Spiel. Dafür gibt es den Spickzettel im Bedienfeld, öffne ihn aber nicht, während der Bildschirm für alle sichtbar ist.",
+      "Bewerte großzügig und sag ruhig „Teilweise“, wenn die Gruppe nah dran ist. Es geht nicht darum, wer sich mit IT auskennt.",
+      "Nach etwa zehn Minuten ohne Fortschritt beide Tipps geben und dann auflösen. Die Zeitanzeige wird ab zehn Minuten rot.",
+      "<b>Wettbewerb:</b> Mehrere Teams spielen dieselbe Karte. Gewonnen hat das Team mit den wenigsten Fragen, jeder Tipp zählt als fünf Fragen.",
+    ],
+    toCards: "Zu den Karten",
+  },
+  en: {
+    navCards: "Cards", navRules: "Rules",
+    eyebrowCards: n => `Game master · ${n} cards`, headCards: "Which incident will we solve today?",
+    level: "Difficulty", group: "Audience", all: "All",
+    levels: { leicht: "Easy", mittel: "Medium", schwer: "Hard" },
+    groups: { produktion: "Production", buero: "Office", einkauf: "Purchasing and accounting", vertrieb: "Sales and field service", fuehrung: "Management and IT" },
+    random: "Random card", resetPlayed: "Reset played",
+    countNote: (a, b, p) => `${a} of ${b} cards` + (p ? ` · ${p} already played` : ""),
+    riddle: "RIDDLE", solution: "SOLUTION", played: "Played", allCards: "← All cards",
+    cardLabel: "Riddle card", panelLabel: "Game master controls",
+    questions: "Questions asked", minusQ: "Remove one question", plusQ: "+ Question",
+    time: "Time", space: "Space", start: "Start", pause: "Pause", resume: "Resume", resetTime: "Reset time",
+    tips: "Hints", ofN: (a, b) => `${a} of ${b}`, tip: i => `Hint ${i}`, showTip: i => `Show hint ${i}`,
+    reveal: "Reveal solution", peekOpen: "Cheat sheet for the game master", peekClose: "Hide cheat sheet",
+    peekWarn: "<b>For your eyes only.</b> Don't open this on the projector.",
+    prev: "← Previous", next: "Next →",
+    keys: "Keys: <kbd>F</kbd> count question · <kbd>T</kbd> hint · <kbd>L</kbd> solution · <kbd>Space</kbd> timer · <kbd>←</kbd> <kbd>→</kbd> switch card",
+    stats: (q, t, time) => `${q} ${q === 1 ? "question" : "questions"} · ${t} ${t === 1 ? "hint" : "hints"} · ${time}`,
+    takeaway: "Key takeaway", debrief: "Debrief",
+    debriefQs: ["Could this happen here too?", "How could the incident have been spotted earlier?", "Who do we call if we notice something like this?"],
+    fallback: "Only available in German", fallbackShort: "DE only", difficulty: "Difficulty",
+    rulesEyebrow: "How to play", rulesHead: "Rules",
+    steps: [
+      ["Pick a card", "The game master picks a card and reads out the title and riddle. The riddle is shown large on screen, the solution stays hidden."],
+      ["Ask questions", "The group asks questions that can be answered with yes or no. The game master keeps count."],
+      ["Give hints", "If the group is stuck for a few minutes, the game master reveals the first hint, later the second one."],
+      ["Solve", "A card is solved when the group names the core of it: what happened and which mistake made it possible."],
+      ["Reveal and discuss", "Reveal the solution and the key takeaway, then discuss together whether this could happen here too. This part may take as long as the guessing."],
+    ],
+    answersHead: "Allowed answers",
+    answers: [["Yes", ""], ["No", ""], ["Irrelevant", "doesn't matter for the solution"], ["Partly", "half right"]],
+    gmHead: "Tips for the game master",
+    gm: [
+      "Read the solution before the game. Use the cheat sheet in the controls for that, but don't open it while the screen is visible to everyone.",
+      "Be generous and say “Partly” when the group is close. This is not about who knows the most about IT.",
+      "After about ten minutes without progress, give both hints and then reveal the solution. The timer turns red after ten minutes.",
+      "<b>Competition:</b> Several teams play the same card. The team with the fewest questions wins; each hint counts as five questions.",
+    ],
+    toCards: "Go to cards",
+  },
+};
+const STARS = { leicht: 1, mittel: 2, schwer: 3 };
+const LEVEL_KEYS = ["leicht", "mittel", "schwer"];
+const KNOWN_GROUPS = ["produktion", "buero", "einkauf", "vertrieb", "fuehrung"];
+const usedGroups = new Set(CARDS.flatMap(c => c.abteilungen));
+const GROUP_KEYS = [...KNOWN_GROUPS.filter(k => usedGroups.has(k)), ...[...usedGroups].filter(k => !KNOWN_GROUPS.includes(k)).sort()];
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("cyberstories:" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("cyberstories:" + k, JSON.stringify(v)); } catch (e) {} },
+};
+
+const browserLang = (navigator.language || "de").toLowerCase().startsWith("de") ? "de" : "en";
+let S = {
+  lang: store.get("lang", browserLang), view: "cards", level: "alle", group: "alle", nr: null,
+  questions: 0, tipsShown: 0, solved: false, peek: false,
+  timer: 0, running: false, played: store.get("played", []),
+};
+if (!T[S.lang]) S.lang = "de";
+let tick = null;
+const L = () => T[S.lang];
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const md = s => s.split(/\n\s*\n/).map(p => "<p>" + esc(p.trim()).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\*(.+?)\*/g, "<i>$1</i>") + "</p>").join("");
+const svg = c => `<svg viewBox="0 0 120 120" aria-hidden="true">${c.bild}</svg>`;
+const groupLabel = k => L().groups[k] || (k.charAt(0).toUpperCase() + k.slice(1));
+const stars = lvl => `<span class="stars" title="${L().difficulty}: ${L().levels[lvl]}">${[1, 2, 3].map(i => `<i class="${i <= STARS[lvl] ? "" : "off"}"></i>`).join("")}<em>${L().levels[lvl]}</em></span>`;
+const pad = n => String(n).padStart(2, "0");
+const fmt = s => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+const card = nr => CARDS.find(c => c.nr === nr);
+// Text der Karte in der gewählten Sprache, sonst in der anderen Sprache mit Hinweis.
+const txt = c => c[S.lang] ? { ...c[S.lang], fallback: false } : { ...(c.de || c.en), fallback: true };
+
+function filtered() {
+  return CARDS.filter(c => (S.level === "alle" || c.stufe === S.level) && (S.group === "alle" || c.abteilungen.includes(S.group)));
+}
+
+function go(view, extra = {}) {
+  Object.assign(S, { view }, extra);
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+function startCard(nr) {
+  stopTimer();
+  go("play", { nr, questions: 0, tipsShown: 0, solved: false, peek: false, timer: 0, running: false });
+}
+
+function startTimer() {
+  if (S.running) return;
+  S.running = true;
+  tick = setInterval(() => { S.timer++; const n = $("#timer-num"); if (n) { n.textContent = fmt(S.timer); n.classList.toggle("warn", S.timer >= 600); } }, 1000);
+  updateTimerBtn();
+}
+function stopTimer() { S.running = false; clearInterval(tick); tick = null; updateTimerBtn(); }
+function updateTimerBtn() { const b = $("#timer-toggle"); if (b) b.textContent = S.running ? L().pause : (S.timer ? L().resume : L().start); }
+
+function markPlayed(nr) {
+  if (!S.played.includes(nr)) { S.played.push(nr); store.set("played", S.played); }
+}
+
+function viewCards() {
+  const t = L(), list = filtered();
+  const chip = (key, k, label) => `<button type="button" class="chip" id="f-${key}-${k}" data-f="${key}" data-v="${k}" aria-pressed="${S[key] === k}">${esc(label)}</button>`;
+  return `
+    <p class="eyebrow">${t.eyebrowCards(CARDS.length)}</p>
+    <h1 class="page">${t.headCards}</h1>
+    <div class="rule"></div>
+    <div class="filters">
+      <div class="fgroup"><span>${t.level}</span><div class="chips">${chip("level", "alle", t.all)}${LEVEL_KEYS.map(k => chip("level", k, t.levels[k])).join("")}</div></div>
+      <div class="fgroup"><span>${t.group}</span><div class="chips">${chip("group", "alle", t.all)}${GROUP_KEYS.map(k => chip("group", k, groupLabel(k))).join("")}</div></div>
+      <div class="fgroup"><span>&nbsp;</span><div class="chips">
+        <button type="button" class="btn red" id="random" ${list.length ? "" : "disabled"}>${t.random}</button>
+        ${S.played.length ? `<button type="button" class="btn" id="reset-played">${t.resetPlayed}</button>` : ""}
+      </div></div>
+    </div>
+    <p class="count-note">${t.countNote(list.length, CARDS.length, S.played.length)}</p>
+    <div class="grid">${list.map(c => { const x = txt(c); const p = S.played.includes(c.nr); return `
+      <button type="button" class="tile${p ? " is-played" : ""}" data-nr="${c.nr}" id="tile-${c.nr}">
+        <span class="tile-bar"><span>${t.riddle}</span><b>#${pad(c.nr)}</b></span>
+        <span class="art">${svg(c)}</span>
+        <span class="tile-body">
+          <span class="tile-title">${esc(x.titel)}</span>
+          <span class="tile-meta">${stars(c.stufe)}${x.fallback ? `<span class="fallback">${t.fallbackShort}</span>` : ""}${p ? `<span class="played">${t.played}</span>` : ""}</span>
+        </span>
+      </button>`; }).join("")}
+    </div>`;
+}
+
+function viewPlay() {
+  const t = L(), c = card(S.nr), x = txt(c);
+  const list = filtered();
+  const idx = list.findIndex(y => y.nr === c.nr);
+  const tips = x.tipps.slice(0, S.tipsShown).map((tp, i) => `<div class="tip reveal"><span class="tip-label">${t.tip(i + 1)}</span>${esc(tp)}</div>`).join("");
+  const nextTip = S.tipsShown < x.tipps.length
+    ? `<button type="button" class="btn tipbtn" id="tip"><span>${t.showTip(S.tipsShown + 1)}</span><kbd>T</kbd></button>` : "";
+  return `
+    <div class="backrow">
+      <button type="button" class="linkbtn" id="back">${t.allCards}</button>
+      <span>${stars(c.stufe)}</span>
+    </div>
+    <div class="play">
+      <article class="bigcard" aria-label="${t.cardLabel}">
+        <div class="tile-bar"><span>CYBER<b style="font-size:inherit">STORIES</b></span><b>#${pad(c.nr)}</b></div>
+        <div class="art">${svg(c)}</div>
+        <div class="bigcard-body">
+          ${x.fallback ? `<span class="fallback">${t.fallback}</span>` : ""}
+          <h2>${esc(x.titel)}</h2>
+          <div class="rule"></div>
+          <div class="riddle">${md(x.raetsel)}</div>
+        </div>
+      </article>
+      <aside class="panel" aria-label="${t.panelLabel}">
+        <div class="box">
+          <p class="box-h"><span>${t.questions}</span><span><kbd>F</kbd></span></p>
+          <div class="counter">
+            <button type="button" class="btn" id="q-minus" aria-label="${t.minusQ}">−</button>
+            <span class="num" id="q-num" aria-live="polite">${S.questions}</span>
+            <button type="button" class="btn solid plus" id="q-plus">${t.plusQ}</button>
+          </div>
+        </div>
+        <div class="box">
+          <p class="box-h"><span>${t.time}</span><span><kbd>${t.space}</kbd></span></p>
+          <div class="timer">
+            <span class="num${S.timer >= 600 ? " warn" : ""}" id="timer-num">${fmt(S.timer)}</span>
+            <span class="btns">
+              <button type="button" class="btn solid" id="timer-toggle"></button>
+              <button type="button" class="btn" id="timer-reset" aria-label="${t.resetTime}">↺</button>
+            </span>
+          </div>
+        </div>
+        <div class="box">
+          <p class="box-h"><span>${t.tips}</span><span>${t.ofN(S.tipsShown, x.tipps.length)}</span></p>
+          <div class="tips">${tips}${nextTip}</div>
+        </div>
+        ${S.solved ? "" : `<button type="button" class="btn red" id="solve">${t.reveal} <kbd>L</kbd></button>`}
+        <div>
+          <button type="button" class="linkbtn" id="peek" aria-expanded="${S.peek}">${S.peek ? t.peekClose : t.peekOpen}</button>
+          ${S.peek && !S.solved ? `<div class="peek"><p>${t.peekWarn}</p>${md(x.loesung)}</div>` : ""}
+        </div>
+        <div class="navrow">
+          <button type="button" class="btn" id="prev" ${idx > 0 ? "" : "disabled"}>${t.prev}</button>
+          <button type="button" class="btn" id="next" ${idx >= 0 && idx < list.length - 1 ? "" : "disabled"}>${t.next}</button>
+        </div>
+        <p class="hint-keys">${t.keys}</p>
+      </aside>
+    </div>
+    ${S.solved ? `
+    <section class="solution reveal" id="solution" aria-label="${t.solution}">
+      <div class="tile-bar"><span>${t.solution}</span><b>${t.stats(S.questions, S.tipsShown, fmt(S.timer))}</b></div>
+      <div class="sol-body">
+        <div class="sol-text">${md(x.loesung)}</div>
+        <div>
+          <div class="merk"><span class="tip-label">${t.takeaway}</span>${md(x.merksatz)}</div>
+          <div class="talk">
+            <p class="box-h"><span>${t.debrief}</span></p>
+            <ol>${t.debriefQs.map(q => `<li>${q}</li>`).join("")}</ol>
+          </div>
+        </div>
+      </div>
+    </section>` : ""}`;
+}
+
+function viewRules() {
+  const t = L();
+  return `
+    <p class="eyebrow">${t.rulesEyebrow}</p>
+    <h1 class="page">${t.rulesHead}</h1>
+    <div class="rule"></div>
+    <div class="rules">
+      <ol class="steps">${t.steps.map(([h, b]) => `<li><div><b>${h}</b>${b}</div></li>`).join("")}</ol>
+      <div class="prose">
+        <p class="box-h"><span>${t.answersHead}</span></p>
+        <div class="answers">${t.answers.map(([a, d]) => `<div>${a}${d ? `<span>${d}</span>` : ""}</div>`).join("")}</div>
+        <p class="box-h" style="margin-top:26px"><span>${t.gmHead}</span></p>
+        ${t.gm.map(p => `<p>${p}</p>`).join("")}
+        <button type="button" class="btn solid" id="to-cards" style="margin-top:8px">${t.toCards}</button>
+      </div>
+    </div>`;
+}
+
+function render() {
+  const t = L();
+  document.documentElement.lang = S.lang;
+  $("#nav-cards").textContent = t.navCards;
+  $("#nav-rules").textContent = t.navRules;
+  document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === S.lang)));
+  $("#app").innerHTML = S.view === "play" && S.nr && card(S.nr) ? viewPlay() : S.view === "rules" ? viewRules() : viewCards();
+  document.querySelectorAll(".nav button").forEach(b => b.setAttribute("aria-current", String(b.dataset.view === S.view || (S.view === "play" && b.dataset.view === "cards"))));
+  updateTimerBtn();
+}
+
+function act(id) {
+  const c = S.nr && card(S.nr);
+  const list = filtered();
+  const idx = c ? list.findIndex(x => x.nr === c.nr) : -1;
+  switch (id) {
+    case "q-plus": S.questions++; if (!S.running && !S.solved) startTimer(); $("#q-num").textContent = S.questions; return;
+    case "q-minus": S.questions = Math.max(0, S.questions - 1); $("#q-num").textContent = S.questions; return;
+    case "timer-toggle": S.running ? stopTimer() : startTimer(); return;
+    case "timer-reset": stopTimer(); S.timer = 0; $("#timer-num").textContent = fmt(0); $("#timer-num").classList.remove("warn"); updateTimerBtn(); return;
+    case "tip": if (S.tipsShown < txt(c).tipps.length) { S.tipsShown++; render(); } return;
+    case "solve": S.solved = true; S.peek = false; stopTimer(); markPlayed(c.nr); render(); setTimeout(() => $("#solution")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); return;
+    case "peek": S.peek = !S.peek; render(); return;
+    case "prev": if (idx > 0) startCard(list[idx - 1].nr); return;
+    case "next": if (idx >= 0 && idx < list.length - 1) startCard(list[idx + 1].nr); return;
+    case "back": case "home": case "to-cards": stopTimer(); go("cards"); return;
+    case "random": {
+      const fresh = list.filter(x => !S.played.includes(x.nr));
+      const pool = fresh.length ? fresh : list;
+      if (pool.length) startCard(pool[Math.floor(Math.random() * pool.length)].nr);
+      return;
+    }
+    case "reset-played": S.played = []; store.set("played", []); render(); return;
+  }
+}
+
+document.addEventListener("click", e => {
+  const lg = e.target.closest(".lang button");
+  if (lg) { S.lang = lg.dataset.lang; store.set("lang", S.lang); render(); return; }
+  const nav = e.target.closest(".nav button");
+  if (nav) { stopTimer(); go(nav.dataset.view); return; }
+  const f = e.target.closest("[data-f]");
+  if (f) { S[f.dataset.f] = f.dataset.v; store.set("filters", { level: S.level, group: S.group }); render(); return; }
+  const tl = e.target.closest(".tile");
+  if (tl) { startCard(+tl.dataset.nr); return; }
+  const b = e.target.closest("button[id]");
+  if (b) act(b.id);
+});
+
+document.addEventListener("keydown", e => {
+  if (S.view !== "play" || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.target.closest("input, textarea")) return;
+  const k = e.key.toLowerCase();
+  const map = { f: "q-plus", "+": "q-plus", "-": "q-minus", t: "tip", l: "solve", arrowleft: "prev", arrowright: "next", escape: "back" };
+  if (e.key === " ") { e.preventDefault(); act("timer-toggle"); return; }
+  if (map[k]) { if (k === "l" && S.solved) return; e.preventDefault(); act(map[k]); }
+});
+
+function start(data) {
+  const f = store.get("filters", null);
+  if (f) {
+    S.level = f.level === "alle" || LEVEL_KEYS.includes(f.level) ? f.level : "alle";
+    S.group = f.group === "alle" || GROUP_KEYS.includes(f.group) ? f.group : "alle";
+  }
+  if (data && data.view) { Object.assign(S, data, { running: false, played: store.get("played", []) }); }
+  render();
+  if (data && data.wasRunning) startTimer();
+}
+window.claude?.hot?.snapshot?.(() => ({ lang: S.lang, view: S.view, level: S.level, group: S.group, nr: S.nr, questions: S.questions,
+  tipsShown: S.tipsShown, solved: S.solved, peek: S.peek, timer: S.timer, wasRunning: S.running }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
